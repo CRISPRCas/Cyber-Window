@@ -1,0 +1,81 @@
+import * as THREE from 'three';
+import { Params } from '../ui/Params';
+import drawSkyFrag from '../shaders/sky/drawsky.frag?raw';
+
+
+export class DrawSkyPass {
+  private renderer: THREE.WebGLRenderer;
+  private scene: THREE.Scene;
+  private camera2D: THREE.OrthographicCamera;
+  private mesh: THREE.Mesh;
+  private mat: THREE.ShaderMaterial;
+
+  constructor(renderer: THREE.WebGLRenderer, camera3D: THREE.PerspectiveCamera, transTex: THREE.Texture, params: Params) {
+    this.renderer = renderer;
+    this.scene = new THREE.Scene();
+    this.camera2D = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const geo = new THREE.PlaneGeometry(2, 2);
+
+    this.mat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTransTex: { value: transTex },
+        uInvProj:  { value: new THREE.Matrix4() },
+        uInvView:  { value: new THREE.Matrix4() },
+        uCamPos:   { value: new THREE.Vector3() },
+        uSunDir:   { value: new THREE.Vector3(0,1,0) },
+        uRayleighScale: { value: params.atmosphere.rayleighScale },
+        uMieScale:      { value: params.atmosphere.mieScale },
+        uGroundAlbedo:  { value: params.atmosphere.groundAlbedo },
+        uSteps:         { value: params.render.singleScatteringSteps },
+        uResolution:    { value: new THREE.Vector2(1,1) }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = vec4(position, 1.0); }
+      `,
+      fragmentShader: drawSkyFrag
+    });
+
+    // property hooks
+    Object.defineProperty(params.render, 'singleScatteringSteps', {
+      set: (v: number)=>{ this.mat.uniforms.uSteps.value = v; },
+      get: ()=> this.mat.uniforms.uSteps.value
+    });
+    Object.defineProperty(params.atmosphere, 'rayleighScale', {
+      set: (v: number)=>{ this.mat.uniforms.uRayleighScale.value = v; },
+      get: ()=> this.mat.uniforms.uRayleighScale.value
+    });
+    Object.defineProperty(params.atmosphere, 'mieScale', {
+      set: (v: number)=>{ this.mat.uniforms.uMieScale.value = v; },
+      get: ()=> this.mat.uniforms.uMieScale.value
+    });
+    Object.defineProperty(params.atmosphere, 'groundAlbedo', {
+      set: (v: number)=>{ this.mat.uniforms.uGroundAlbedo.value = v; },
+      get: ()=> this.mat.uniforms.uGroundAlbedo.value
+    });
+
+    this.mesh = new THREE.Mesh(geo, this.mat);
+    this.scene.add(this.mesh);
+
+    const updateFromCamera = () => {
+      const invProj = new THREE.Matrix4().copy(camera3D.projectionMatrix).invert();
+      const invView = new THREE.Matrix4().copy(camera3D.matrixWorld);
+      this.mat.uniforms.uInvProj.value.copy(invProj);
+      this.mat.uniforms.uInvView.value.copy(invView);
+      this.mat.uniforms.uCamPos.value.copy(camera3D.position);
+    };
+    (this as any).updateFromCamera = updateFromCamera;
+    updateFromCamera();
+  }
+
+  setSize(w: number, h: number) {
+    this.mat.uniforms.uResolution.value.set(w, h);
+  }
+
+  render(sunDir: {x:number,y:number,z:number}) {
+    (this as any).updateFromCamera();
+    this.mat.uniforms.uSunDir.value.set(sunDir.x, sunDir.y, sunDir.z);
+    this.renderer.setRenderTarget(null);
+    this.renderer.render(this.scene, this.camera2D);
+  }
+}
