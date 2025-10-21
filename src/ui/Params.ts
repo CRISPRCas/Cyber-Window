@@ -32,5 +32,20 @@ export function createParams() {
       skySunIntensity:   20.0,
       exposure:          0.9,
     },
+
+    cloud: {
+      coverage:   0.25,     // 覆盖度 0..1
+      height:     500.0,   // 云底高度（米）
+      thickness:  1200.0,   // 云层厚度（米）
+      sigmaT:     0.85,     // 吸收/消光系数（越大越厚/越暗）
+      phaseG:     0.6,      // Henyey–Greenstein g（前向散射）
+      steps:      48,       // Ray marching 步数
+      maxDistance:12000.0,  // 每条光线在云层内的最大行进距离（米）
+      windX:      6.0,      // 风速（XZ）
+      windZ:      3.0,
+      ambientK:   0.06,     // 近似天光（软填充）
+      opacity:    1.0,      // 最终云贡献的整体乘子
+      enabled:    true      // 开关（可选）
+    },
   };
 }

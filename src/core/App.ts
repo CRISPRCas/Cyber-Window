@@ -6,7 +6,6 @@ import { TransmittancePass } from '../sky/TransmittancePass';
 import { DrawSkyPass } from '../sky/DrawSkyPass';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-
 export class App {
   private renderer: THREE.WebGLRenderer;
   private camera: THREE.PerspectiveCamera;
@@ -15,6 +14,8 @@ export class App {
 
   private trans: TransmittancePass;
   private drawSky: DrawSkyPass;
+
+  private _cloudTime = 0;
 
   constructor(container: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -38,9 +39,10 @@ export class App {
     this.controls.target.set(0, 1.8, 0);
     this.controls.update();
 
-
     this.params = createParams();
+
     const gui = new GUI();
+
     const sky = gui.addFolder('Sky');
     sky.add(this.params.atmosphere, 'rayleighScale', 0.1, 5.0, 0.01).name('rayleighScale').onChange(()=>this.refreshLUT());
     sky.add(this.params.atmosphere, 'mieScale', 0.1, 5.0, 0.01).name('mieScale').onChange(()=>this.refreshLUT());
@@ -51,6 +53,7 @@ export class App {
     sky2.add(this.params.sky2, 'aerialStrength',    0.0, 1.0, 0.01);
     sky2.add(this.params.sky2, 'aerialDistance',    20000, 200000, 1000);
     sky2.add(this.params.sky2, 'skySunIntensity',   0.0, 60.0, 0.5);
+    sky2.add(this.params.sky2, 'exposure',          0.1, 2.0, 0.01);
 
     const sun = gui.addFolder('Sun');
     sun.add(this.params.sun, 'angularDiameterDeg', 0.3, 0.7, 0.01);
@@ -72,12 +75,37 @@ export class App {
 
     gui.add(this.params.render, 'singleScatteringSteps', 8, 64, 1).name('skySteps');
 
+    // ===== Cloud GUI =====
+    const cloud = gui.addFolder('Cloud (volumetric)');
+    cloud.add(this.params.cloud, 'enabled').name('enabled');
+    cloud.add(this.params.cloud, 'coverage', 0.0, 1.0, 0.01);
+    cloud.add(this.params.cloud, 'height', 200, 4000, 10);
+    cloud.add(this.params.cloud, 'thickness', 200, 4000, 10);
+    cloud.add(this.params.cloud, 'sigmaT', 0.1, 2.0, 0.01);
+    cloud.add(this.params.cloud, 'phaseG', 0.0, 0.9, 0.01);
+    cloud.add(this.params.cloud, 'steps', 8, 128, 1);
+    cloud.add(this.params.cloud, 'maxDistance', 2000, 40000, 100);
+    cloud.add(this.params.cloud, 'windX', -40, 40, 0.5);
+    cloud.add(this.params.cloud, 'windZ', -40, 40, 0.5);
+    cloud.add(this.params.cloud, 'ambientK', 0.0, 0.5, 0.01);
+    cloud.add(this.params.cloud, 'opacity', 0.0, 2.0, 0.01);
+
     // LUT
     this.trans = new TransmittancePass(this.renderer, this.params.atmosphere);
     this.trans.render();
 
     // Sky draw pass
     this.drawSky = new DrawSkyPass(this.renderer, this.camera, this.trans.texture, this.params);
+
+    // Perlin 纹理
+    {
+      const loader = new THREE.TextureLoader();
+      const perlin = loader.load('assets/perlin256.png');
+      perlin.wrapS = perlin.wrapT = THREE.RepeatWrapping;
+      perlin.minFilter = THREE.LinearMipMapLinearFilter;
+      perlin.magFilter = THREE.LinearFilter;
+      this.drawSky.setPerlinTexture(perlin);
+    }
 
     window.addEventListener('resize', () => {
       this.camera.aspect = container.clientWidth / container.clientHeight;
@@ -95,12 +123,14 @@ export class App {
 
   frame(dt: number) {
     this.controls.update();
+    this._cloudTime += dt;
+    this.drawSky.setCloudTime(this._cloudTime);
+
     const date = new Date(Date.UTC(
       this.params.time.year, this.params.time.month - 1, this.params.time.day,
       this.params.time.hour - this.params.time.utcOffset, this.params.time.minute, 0, 0
     ));
-    const { dir, altDeg } = computeSunDirection(this.params.place.latitude, this.params.place.longitude, date);
+    const { dir /*, altDeg*/ } = computeSunDirection(this.params.place.latitude, this.params.place.longitude, date);
     this.drawSky.render(dir);
-    // console.log('sun altitude (deg)=', altDeg.toFixed(1));
   }
 }

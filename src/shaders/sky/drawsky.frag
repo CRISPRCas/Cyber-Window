@@ -18,6 +18,22 @@ uniform float uSunIntensity;
 uniform float uHaloStrength;
 uniform float uHaloFalloff;
 
+// === Clouds uniforms ===
+uniform sampler2D uPerlinTex;
+uniform float uCloudCoverage;
+uniform float uCloudHeight;
+uniform float uCloudThickness;
+uniform float uCloudSigmaT;
+uniform float uCloudPhaseG;
+uniform int   uCloudSteps;
+uniform float uCloudMaxDistance;
+uniform vec2  uCloudWind;
+uniform float uCloudTime;
+uniform float uCloudAmbientK;
+uniform float uCloudOpacity;
+uniform int   uCloudEnabled;
+
+
 // Fast approx controls
 uniform float uMultiScatterBoost;   // 可设 0
 uniform float uAerialStrength;
@@ -117,6 +133,50 @@ vec3 sampleTransmittanceToSun(vec3 pos){
   return texture2D(uTransTex, rMuToUV(r, mu)).rgb;
 }
 // --------------------------------------------------------------------------
+
+// 小旋转矩阵，用于打散各_octave 的相关性
+const mat3 FBM_M = mat3(
+   0.00,  0.80,  0.60,
+  -0.80,  0.36, -0.48,
+  -0.60, -0.48,  0.64
+);
+
+// 从 2D Perlin 纹理取样（用 XZ 做平面，低频比例 0.01 可按需调）
+float noise3D(in vec3 p) {
+    vec2 uv = p.xz * 0.01;
+    return texture2D(uPerlinTex, uv).r;
+}
+
+// 分形布朗运动（FBM）
+float fbm(vec3 p) {
+    float t;
+    float mult = 2.76434;  // 频率倍增
+    t  = 0.51749673 * noise3D(p); p = FBM_M * p * mult;
+    t += 0.25584929 * noise3D(p); p = FBM_M * p * mult;
+    t += 0.12527603 * noise3D(p); p = FBM_M * p * mult;
+    t += 0.06255931 * noise3D(p);
+    return t;
+}
+
+// 云密度（球面高度版）
+float cloud_density(vec3 worldPos, vec3 offset, float h) {
+    // 形状坐标（低频缩放 + 风偏移）
+    vec3 p = worldPos * 0.0212242 + offset;
+
+    float dens = fbm(p);
+
+    // 覆盖度阈值
+    float cov = 1.0 - uCloudCoverage;
+    dens *= smoothstep(cov, cov + 0.05, dens);
+
+    // 高度衰减：h = |p|-Rg（以米计）
+    float t = clamp((h - uCloudHeight) / max(1.0, uCloudThickness), 0.0, 1.0);
+    float heightAttenuation = (1.0 - t);
+    heightAttenuation *= heightAttenuation; // 边界更柔
+    dens *= heightAttenuation;
+
+    return clamp(dens, 0.0, 1.0);
+}
 
 void main(){
   vec3 ro = vec3(0.0, Rg + 2.0, 0.0);
@@ -246,6 +306,101 @@ void main(){
     Tcam *= exp(-sigma_t * dt);
     t += dt;
   }
+
+  // ----- Volumetric Clouds: Ray Marching (方案B：用 LUT 调制太阳->云) -----
+  if (uCloudEnabled == 1) {
+    vec3 ro = vec3(0.0, Rg + 2.0, 0.0);
+    vec3 rd = getViewDir(vUv);
+
+    // 云层半径
+    float Rb = Rg + uCloudHeight;            // inner (bottom)
+    float RtC = Rb + uCloudThickness;        // outer (top)
+
+    // 与外层相交
+    float to0, to1;
+    if (raySphere(ro, rd, RtC, to0, to1)) {
+      // 选择进入/退出云层的 [t0, t1]
+      float t0 = 0.0;
+      float t1 = 0.0;
+
+      float rc = length(ro);
+      if (rc < Rb) {
+        // 相机位于云层以下：先退出 inner，再退出 outer
+        float ti0, ti1;
+        if (!raySphere(ro, rd, Rb, ti0, ti1)) {
+          // 朝向与下边界无交：不渲染云
+          // do nothing
+        } else {
+          t0 = max(0.0, ti1);
+          t1 = to1;
+        }
+      } else if (rc < RtC) {
+        // 相机在云层内部：从0开始到外层退出
+        t0 = 0.0;
+        t1 = to1;
+      } else {
+        // 相机在云层之外（上方），可能从外层进入到外层退出
+        t0 = max(0.0, to0);
+        t1 = to1;
+      }
+
+      // clamp 最大行进距离
+      float tMax = t0 + uCloudMaxDistance;
+      t1 = min(t1, tMax);
+
+      if (t1 > t0) {
+        int STEPS = max(uCloudSteps, 4);
+        float dt = (t1 - t0) / float(STEPS);
+        float t = t0 + 0.5 * dt;
+
+        vec3 Tcloud = vec3(1.0);
+        vec3 Lcloud = vec3(0.0);
+
+        // 风偏移
+        vec3 windOfs = vec3(uCloudWind.x, 0.0, uCloudWind.y) * uCloudTime * 0.02;
+
+        for (int i=0; i<256; ++i) {
+          if (i >= STEPS) break;
+
+          vec3 p = ro + rd * t;
+          float h = length(p) - Rg;
+
+          // 云密度（0..1）
+          float dens = cloud_density(p, windOfs, h);
+          if (dens > 1e-4) {
+            float sigma_t = uCloudSigmaT * dens;
+            float alpha   = 1.0 - exp(-sigma_t * dt);
+
+            // 方案B：太阳->样本点的大气透过率（用 LUT）
+            vec3 T_sun = sampleTransmittanceToSun(p);
+
+            // 单次散射（HG）
+            float cosTheta = dot(rd, uSunDir);
+            float phase = hgPhase(cosTheta, uCloudPhaseG);
+
+            // 入射光（直射 + 近似环境天光）
+            vec3 Li = uSunIntensity * T_sun * phase
+                    + vec3(uCloudAmbientK);
+
+            // 贡献并更新云内透过率（Beer–Lambert）
+            Lcloud += Tcloud * Li * alpha;
+            Tcloud *= exp(-sigma_t * dt);
+
+            // 早停
+            if (max(Tcloud.r, max(Tcloud.g, Tcloud.b)) < 0.005) break;
+          }
+
+          t += dt;
+        }
+
+        // 最终与天空合成（云不透明度整体乘子）
+        L = L * Tcloud + Lcloud * uCloudOpacity;
+      }
+    }
+  }
+  // ----- end volumetric clouds -----
+
+
 
   // ---------- 暖雾 / Aerial ----------
   // 基于光学厚度与近地平线形状（稳定，避免满屏）
