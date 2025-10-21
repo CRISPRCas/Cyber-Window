@@ -3,9 +3,9 @@ export type Params = ReturnType<typeof createParams>;
 export function createParams() {
   return {
     atmosphere: {
-      rayleighScale: 5.0,
-      mieScale: 5.0,
-      groundAlbedo: 0.5,
+      rayleighScale: 1.6,
+      mieScale: 3.2,
+      groundAlbedo: 0.08,
     },
     place: {
       latitude: 22.33812,
@@ -21,9 +21,16 @@ export function createParams() {
     },
     sun: {
       angularDiameterDeg: 0.53,
-      intensity: 25.0,
-      haloStrength: 0.6,
-      haloFalloff: 5.0
+      intensity: 24,
+      haloStrength: 1.0,
+      haloFalloff: 5
+    },
+    sky2: {
+      multiScatterBoost: 0.0,
+      aerialStrength:    0.20,
+      aerialDistance:    150000,
+      skySunIntensity:   20.0,
+      exposure:          0.9,
     },
   };
 }

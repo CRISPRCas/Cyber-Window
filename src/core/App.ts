@@ -21,7 +21,7 @@ export class App {
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.0;
+    this.renderer.toneMappingExposure = 1.15;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(this.renderer.domElement);
 
@@ -45,6 +45,12 @@ export class App {
     sky.add(this.params.atmosphere, 'rayleighScale', 0.1, 5.0, 0.01).name('rayleighScale').onChange(()=>this.refreshLUT());
     sky.add(this.params.atmosphere, 'mieScale', 0.1, 5.0, 0.01).name('mieScale').onChange(()=>this.refreshLUT());
     sky.add(this.params.atmosphere, 'groundAlbedo', 0.0, 1.0, 0.01).name('groundAlbedo');
+
+    const sky2 = gui.addFolder('Sky-2 (fast approx)');
+    sky2.add(this.params.sky2, 'multiScatterBoost', 0.0, 1.0, 0.01);
+    sky2.add(this.params.sky2, 'aerialStrength',    0.0, 1.0, 0.01);
+    sky2.add(this.params.sky2, 'aerialDistance',    20000, 200000, 1000);
+    sky2.add(this.params.sky2, 'skySunIntensity',   0.0, 60.0, 0.5);
 
     const sun = gui.addFolder('Sun');
     sun.add(this.params.sun, 'angularDiameterDeg', 0.3, 0.7, 0.01);
