@@ -20,6 +20,9 @@ export class App {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(this.renderer.domElement);
 
     this.camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -42,6 +45,12 @@ export class App {
     sky.add(this.params.atmosphere, 'rayleighScale', 0.1, 5.0, 0.01).name('rayleighScale').onChange(()=>this.refreshLUT());
     sky.add(this.params.atmosphere, 'mieScale', 0.1, 5.0, 0.01).name('mieScale').onChange(()=>this.refreshLUT());
     sky.add(this.params.atmosphere, 'groundAlbedo', 0.0, 1.0, 0.01).name('groundAlbedo');
+
+    const sun = gui.addFolder('Sun');
+    sun.add(this.params.sun, 'angularDiameterDeg', 0.3, 0.7, 0.01);
+    sun.add(this.params.sun, 'intensity', 0.0, 100.0, 0.1);
+    sun.add(this.params.sun, 'haloStrength', 0.0, 2.0, 0.01);
+    sun.add(this.params.sun, 'haloFalloff', 0.5, 8.0, 0.1);
 
     const place = gui.addFolder('Place');
     place.add(this.params.place, 'latitude', -66, 66, 0.01);

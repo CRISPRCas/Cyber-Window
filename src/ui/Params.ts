@@ -18,6 +18,12 @@ export function createParams() {
     },
     render: {
       singleScatteringSteps: 24
-    }
+    },
+    sun: {
+      angularDiameterDeg: 0.53,
+      intensity: 25.0,
+      haloStrength: 0.6,
+      haloFalloff: 5.0
+    },
   };
 }

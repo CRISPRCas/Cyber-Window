@@ -27,7 +27,12 @@ export class DrawSkyPass {
         uMieScale:      { value: params.atmosphere.mieScale },
         uGroundAlbedo:  { value: params.atmosphere.groundAlbedo },
         uSteps:         { value: params.render.singleScatteringSteps },
-        uResolution:    { value: new THREE.Vector2(1,1) }
+        uResolution:    { value: new THREE.Vector2(1,1) },
+        uSunAngularRadius: { value: (params.sun.angularDiameterDeg * Math.PI/180) * 0.5 },
+        uSunIntensity:     { value: params.sun.intensity },
+        uHaloStrength:     { value: params.sun.haloStrength },
+        uHaloFalloff:      { value: params.sun.haloFalloff },
+
       },
       vertexShader: `
         varying vec2 vUv;
@@ -53,6 +58,23 @@ export class DrawSkyPass {
       set: (v: number)=>{ this.mat.uniforms.uGroundAlbedo.value = v; },
       get: ()=> this.mat.uniforms.uGroundAlbedo.value
     });
+    Object.defineProperty(params.sun, 'angularDiameterDeg', {
+      set: (v: number)=>{ this.mat.uniforms.uSunAngularRadius.value = (v*Math.PI/180)*0.5; },
+      get: ()=> (this.mat.uniforms.uSunAngularRadius.value*2)*180/Math.PI
+    });
+    Object.defineProperty(params.sun, 'intensity', {
+      set: (v: number)=>{ this.mat.uniforms.uSunIntensity.value = v; },
+      get: ()=> this.mat.uniforms.uSunIntensity.value
+    });
+    Object.defineProperty(params.sun, 'haloStrength', {
+      set: (v: number)=>{ this.mat.uniforms.uHaloStrength.value = v; },
+      get: ()=> this.mat.uniforms.uHaloStrength.value
+    });
+    Object.defineProperty(params.sun, 'haloFalloff', {
+      set: (v: number)=>{ this.mat.uniforms.uHaloFalloff.value = v; },
+      get: ()=> this.mat.uniforms.uHaloFalloff.value
+    });
+
 
     this.mesh = new THREE.Mesh(geo, this.mat);
     this.scene.add(this.mesh);

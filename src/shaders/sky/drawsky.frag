@@ -12,6 +12,12 @@ uniform float uGroundAlbedo;
 uniform int uSteps;
 uniform vec2 uResolution;
 
+uniform float uSunAngularRadius;
+uniform float uSunIntensity;
+uniform float uHaloStrength;
+uniform float uHaloFalloff;
+
+
 const float PI = 3.141592653589793;
 const float Rg = 6360000.0;
 const float Rt = 6420000.0;
@@ -101,6 +107,29 @@ void main() {
 
     t += dt;
   }
+
+  // ---- Sun disk & circumsolar halo ----
+  // 观察方向与太阳方向夹角
+  float cosTS = clamp(dot(rd, uSunDir), -1.0, 1.0);
+  float theta = acos(cosTS);
+
+  // 圆盘：用 smoothstep 软边抗锯齿
+  float r = uSunAngularRadius;           // ~0.00465 rad
+  float edge = r * 0.35;                 // 边缘软化比例，可调
+  float disk = smoothstep(r + edge, r - edge, theta);
+
+  // 简易环日（经验项）：高斯或 exp 衰减
+  float halo = exp(-pow(theta / (r * uHaloFalloff), 2.0)) * uHaloStrength;
+
+  // 视线方向的大气透过率：用 LUT 近似（从相机点 ro 沿 rd 到顶层）
+  vec3 T_view = sampleTransmittance(ro, rd);
+
+  // 太阳基色（可微暖），强度由 uSunIntensity 控制
+  vec3 sunCol = vec3(1.0, 0.995, 0.98);
+
+  // 注意：圆盘与环日都是“直射项”，叠加在天空的散射项之上
+  L += T_view * sunCol * uSunIntensity * (disk + halo);
+
 
   L += uGroundAlbedo * (1.0 - Tcam);
   gl_FragColor = vec4(L, 1.0);
