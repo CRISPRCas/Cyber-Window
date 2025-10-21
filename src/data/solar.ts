@@ -26,5 +26,9 @@ export function computeSunDirection(lat: number, lon: number, date: Date) {
   const z = Math.cos(elev) * Math.sin(a);
   const y = Math.sin(elev);
   const len = Math.hypot(x,y,z) || 1.0;
-  return { x: x/len, y: y/len, z: z/len };
+  return {
+    dir: { x: x/len, y: y/len, z: z/len },
+    altDeg: alt * 180/Math.PI,
+    azDeg:  az  * 180/Math.PI
+  };
 }

@@ -3,17 +3,17 @@ export type Params = ReturnType<typeof createParams>;
 export function createParams() {
   return {
     atmosphere: {
-      rayleighScale: 1.0,
-      mieScale: 1.0,
-      groundAlbedo: 0.1,
+      rayleighScale: 5.0,
+      mieScale: 5.0,
+      groundAlbedo: 0.5,
     },
     place: {
-      latitude: -31.95,   // Perth (negative for south)
-      longitude: 115.86,
+      latitude: 22.33812,
+      longitude: 114.26439,
     },
     time: {
       year: 2025, month: 10, day: 20,
-      hour: 14, minute: 0,
+      hour: 16, minute: 18,
       utcOffset: 8
     },
     render: {

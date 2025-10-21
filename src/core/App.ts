@@ -4,11 +4,14 @@ import { createParams, Params } from '../ui/Params';
 import { computeSunDirection } from '../data/solar';
 import { TransmittancePass } from '../sky/TransmittancePass';
 import { DrawSkyPass } from '../sky/DrawSkyPass';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
 
 export class App {
   private renderer: THREE.WebGLRenderer;
   private camera: THREE.PerspectiveCamera;
   private params: Params;
+  private controls: OrbitControls;
 
   private trans: TransmittancePass;
   private drawSky: DrawSkyPass;
@@ -21,6 +24,17 @@ export class App {
 
     this.camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
     this.camera.position.set(0, 1.8, 3);
+
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.enableZoom = false;
+    this.controls.enablePan = false;
+    this.controls.rotateSpeed = 0.6;
+    this.controls.minPolarAngle = 0.05;
+    this.controls.maxPolarAngle = Math.PI - 0.05;
+    this.controls.target.set(0, 1.8, 0);
+    this.controls.update();
+
 
     this.params = createParams();
     const gui = new GUI();
@@ -65,11 +79,13 @@ export class App {
   }
 
   frame(dt: number) {
+    this.controls.update();
     const date = new Date(Date.UTC(
       this.params.time.year, this.params.time.month - 1, this.params.time.day,
       this.params.time.hour - this.params.time.utcOffset, this.params.time.minute, 0, 0
     ));
-    const sunDir = computeSunDirection(this.params.place.latitude, this.params.place.longitude, date);
-    this.drawSky.render(sunDir);
+    const { dir, altDeg } = computeSunDirection(this.params.place.latitude, this.params.place.longitude, date);
+    this.drawSky.render(dir);
+    // console.log('sun altitude (deg)=', altDeg.toFixed(1));
   }
 }

@@ -60,4 +60,4 @@ export type AtmosphereParams = {
   groundAlbedo: number;
 };
 
-console.log('trans length=', transFrag.length);
+// console.log('trans length=', transFrag.length);
