@@ -13,7 +13,7 @@ export function createParams() {
     },
     time: {
       year: 2025, month: 10, day: 20,
-      hour: 16, minute: 18,
+      hour: 17, minute: 40,
       utcOffset: 8
     },
     render: {
@@ -34,17 +34,17 @@ export function createParams() {
     },
 
     cloud: {
-      coverage:   0.25,     // 覆盖度 0..1
-      height:     500.0,   // 云底高度（米）
-      thickness:  1200.0,   // 云层厚度（米）
-      sigmaT:     0.85,     // 吸收/消光系数（越大越厚/越暗）
+      coverage:   0.36,     // 覆盖度 0..1
+      height:     640.0,   // 云底高度（米）
+      thickness:  1100.0,   // 云层厚度（米）
+      sigmaT:     0.2,     // 吸收/消光系数（越大越厚/越暗）
       phaseG:     0.6,      // Henyey–Greenstein g（前向散射）
-      steps:      48,       // Ray marching 步数
-      maxDistance:12000.0,  // 每条光线在云层内的最大行进距离（米）
+      steps:      128,       // Ray marching 步数
+      maxDistance:2000.0,  // 每条光线在云层内的最大行进距离（米）
       windX:      6.0,      // 风速（XZ）
       windZ:      3.0,
-      ambientK:   0.06,     // 近似天光（软填充）
-      opacity:    1.0,      // 最终云贡献的整体乘子
+      ambientK:   0.03,     // 近似天光（软填充）
+      opacity:    1.8,      // 最终云贡献的整体乘子
       enabled:    true      // 开关（可选）
     },
   };
