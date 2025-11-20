@@ -414,8 +414,11 @@ void main(){
             float phase = hgPhase(cosTheta, uCloudPhaseG);
 
             // 入射光（直射 + 近似环境天光）
+            // Rayleigh-tinted ambient keeps backlit clouds from turning yellow when the sun is low
+            vec3 skyTint = normalize(vec3(betaR.r, betaR.g, betaR.b));
+            skyTint = pow(skyTint, vec3(0.65));
             vec3 Li = uSunIntensity * T_sun * phase
-                    + vec3(uCloudAmbientK);
+                    + skyTint * uCloudAmbientK;
 
             // 贡献并更新云内透过率（Beer–Lambert）
             Lcloud += Tcloud * Li * alpha;
