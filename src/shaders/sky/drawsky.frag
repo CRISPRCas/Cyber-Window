@@ -408,6 +408,12 @@ void main(){
 
             // 方案B：太阳->样本点的大气透过率（用 LUT）
             vec3 T_sun = sampleTransmittanceToSun(p);
+            // Reduce over-reddening: pull sun light toward neutral so daytime clouds stay white
+            float sunLum = dot(T_sun, vec3(0.299, 0.587, 0.114));
+            // Let low sun keep its warm tint: preserve more spectral color near horizon, damp it at noon
+            float warmKeep = 1.0 - smoothstep(radians(4.0), radians(18.0), max(0.0, sunAlt));
+            float spectralWeight = mix(0.35, 1.0, warmKeep);
+            vec3  sunCol = mix(vec3(sunLum), T_sun, spectralWeight);
 
             // 单次散射（HG）
             float cosTheta = dot(rd, uSunDir);
@@ -417,7 +423,7 @@ void main(){
             // Rayleigh-tinted ambient keeps backlit clouds from turning yellow when the sun is low
             vec3 skyTint = normalize(vec3(betaR.r, betaR.g, betaR.b));
             skyTint = pow(skyTint, vec3(0.65));
-            vec3 Li = uSunIntensity * T_sun * phase
+            vec3 Li = uSunIntensity * sunCol * phase
                     + skyTint * uCloudAmbientK;
 
             // 贡献并更新云内透过率（Beer–Lambert）
