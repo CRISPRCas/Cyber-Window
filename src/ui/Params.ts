@@ -33,6 +33,14 @@ export function createParams() {
       exposure:          0.9,
     },
 
+    ground: {
+      mirrorRoughness: 0.05,
+      mirrorNoiseScale: 2.0,
+      rippleAmplitude: 0.03,
+      rippleFrequency: 1.6,
+      rippleSpeed: 1.0,
+    },
+
     cloud: {
       coverage:   0.36,     // 覆盖度 0..1
       height:     640.0,   // 云底高度（米）

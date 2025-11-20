@@ -41,6 +41,11 @@ export class DrawSkyPass {
         uGroundAlbedo:  { value: params.atmosphere.groundAlbedo },
         uSteps:         { value: params.render.singleScatteringSteps },
         uResolution:    { value: new THREE.Vector2(1,1) },
+        uGroundRoughness: { value: params.ground.mirrorRoughness },
+        uGroundNoiseScale:{ value: params.ground.mirrorNoiseScale },
+        uGroundRippleAmp:  { value: params.ground.rippleAmplitude },
+        uGroundRippleFreq: { value: params.ground.rippleFrequency },
+        uGroundRippleSpeed:{ value: params.ground.rippleSpeed },
 
         // Sun
         uSunAngularRadius: { value: (params.sun.angularDiameterDeg * Math.PI/180) * 0.5 },
@@ -106,6 +111,26 @@ export class DrawSkyPass {
     Object.defineProperty(params.atmosphere, 'groundAlbedo', {
       set: (v: number)=>{ this.mat.uniforms.uGroundAlbedo.value = v; },
       get: ()=> this.mat.uniforms.uGroundAlbedo.value
+    });
+    Object.defineProperty(params.ground, 'mirrorRoughness', {
+      set: (v: number)=>{ this.mat.uniforms.uGroundRoughness.value = v; },
+      get: ()=> this.mat.uniforms.uGroundRoughness.value
+    });
+    Object.defineProperty(params.ground, 'mirrorNoiseScale', {
+      set: (v: number)=>{ this.mat.uniforms.uGroundNoiseScale.value = v; },
+      get: ()=> this.mat.uniforms.uGroundNoiseScale.value
+    });
+    Object.defineProperty(params.ground, 'rippleAmplitude', {
+      set: (v: number)=>{ this.mat.uniforms.uGroundRippleAmp.value = v; },
+      get: ()=> this.mat.uniforms.uGroundRippleAmp.value
+    });
+    Object.defineProperty(params.ground, 'rippleFrequency', {
+      set: (v: number)=>{ this.mat.uniforms.uGroundRippleFreq.value = v; },
+      get: ()=> this.mat.uniforms.uGroundRippleFreq.value
+    });
+    Object.defineProperty(params.ground, 'rippleSpeed', {
+      set: (v: number)=>{ this.mat.uniforms.uGroundRippleSpeed.value = v; },
+      get: ()=> this.mat.uniforms.uGroundRippleSpeed.value
     });
     Object.defineProperty(params.sun, 'angularDiameterDeg', {
       set: (v: number)=>{ this.mat.uniforms.uSunAngularRadius.value = (v*Math.PI/180)*0.5; },

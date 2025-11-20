@@ -71,6 +71,12 @@ export class App {
     sun.add(this.params.sun, 'intensity', 0.0, 100.0, 0.1);
     sun.add(this.params.sun, 'haloStrength', 0.0, 2.0, 0.01);
     sun.add(this.params.sun, 'haloFalloff', 0.5, 8.0, 0.1);
+    const ground = gui.addFolder('Ground');
+    ground.add(this.params.ground, 'mirrorRoughness', 0.0, 0.2, 0.005).name('mirrorBlur');
+    ground.add(this.params.ground, 'mirrorNoiseScale', 0.5, 8.0, 0.1).name('noiseScale');
+    ground.add(this.params.ground, 'rippleAmplitude', 0.0, 0.1, 0.002).name('rippleAmp');
+    ground.add(this.params.ground, 'rippleFrequency', 0.2, 4.0, 0.05).name('rippleFreq');
+    ground.add(this.params.ground, 'rippleSpeed', 0.0, 3.0, 0.05).name('rippleSpeed');
 
     const place = gui.addFolder('Place');
     place.add(this.params.place, 'latitude', -66, 66, 0.01);

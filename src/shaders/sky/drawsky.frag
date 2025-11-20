@@ -9,6 +9,11 @@ uniform vec3  uSunDir;
 uniform float uRayleighScale;
 uniform float uMieScale;
 uniform float uGroundAlbedo;
+uniform float uGroundRoughness;
+uniform float uGroundNoiseScale;
+uniform float uGroundRippleAmp;
+uniform float uGroundRippleFreq;
+uniform float uGroundRippleSpeed;
 uniform int   uSteps;
 uniform vec2  uResolution;
 
@@ -66,6 +71,7 @@ vec3 ACESFilm(vec3 x){
   return clamp((x*(a*x+b)) / (x*(c*x+d)+e), 0.0, 1.0);
 }
 float clampDot(vec3 a, vec3 b){ return clamp(dot(a,b), -1.0, 1.0); }
+float hash12(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
 
 void orthoBasis(vec3 n, out vec3 t, out vec3 b){
   vec3 up = abs(n.z) < 0.999 ? vec3(0.0,0.0,1.0) : vec3(1.0,0.0,0.0);
@@ -190,40 +196,45 @@ void main(){
   const float minAltRad = radians(-1.0);   // ≈ 20 分钟
   const float softRad   = radians(0.75);
   float sunGate = smoothstep(minAltRad - softRad, minAltRad + softRad, sunAlt);
+  float moonDayFade = 1.0 - smoothstep(-0.2, 0.12, sunAlt); // hide moon when sun high
+
+  // ---------- 地面 ----------
+  float tg0,tg1;
+  bool didReflect = false;
+  if(raySphere(ro, rd, Rg, tg0, tg1) && tg0>0.0){
+    vec3 pg = ro + rd*tg0;
+    vec3 ng = normalize(pg);
+
+    // Small time-varying ripples to mimic water normals
+    vec3 wt, wb; orthoBasis(ng, wt, wb);
+    float wt0 = sin(dot(pg.xz, vec2(0.021, 0.013)) * (5.0 * uGroundRippleFreq) + uCloudTime * (1.5 * uGroundRippleSpeed));
+    float wt1 = sin(dot(pg.xz, vec2(-0.017, 0.019)) * (4.0 * uGroundRippleFreq) - uCloudTime * (1.1 * uGroundRippleSpeed));
+    float wt2 = sin(dot(pg.xz, vec2(0.011, -0.027)) * (6.0 * uGroundRippleFreq) + uCloudTime * (0.9 * uGroundRippleSpeed));
+    vec2 ripple = vec2(wt0 + wt2, wt1 - wt2) * (0.5 * uGroundRippleAmp);
+    ng = normalize(ng + wt * ripple.x + wb * ripple.y);
+
+    // Mirror reflection with softened jitter (filtered noise to avoid grain)
+    vec3 baseRef = reflect(rd, ng);
+    vec3 t, b; orthoBasis(baseRef, t, b);
+    float rough = uGroundRoughness;
+    vec2 nUv = vUv * uGroundNoiseScale;
+    float n1 = texture2D(uPerlinTex, nUv).r - 0.5;
+    float n2 = texture2D(uPerlinTex, nUv + vec2(11.7, 5.3)).r - 0.5;
+    float h1 = hash12(vUv * 123.4) - 0.5;
+    float h2 = hash12(vUv * 456.7) - 0.5;
+    float j1 = mix(n1, h1, 0.25);
+    float j2 = mix(n2, h2, 0.25);
+    vec3 jitter = normalize(baseRef + t * (j1*rough) + b * (j2*rough));
+    rd = normalize(mix(baseRef, jitter, 0.9));
+
+    ro = pg + ng*1.0; // lift off ground
+    up = normalize(ro);
+    didReflect = true;
+  }
 
   float t0,t1;
   if(!raySphere(ro, rd, Rt, t0, t1)){ gl_FragColor = vec4(0.0); return; }
   if(t0<0.0) t0=0.0;
-
-  // ---------- 地面 ----------
-  float tg0,tg1;
-  if(raySphere(ro, rd, Rg, tg0, tg1) && tg0>0.0){
-    vec3 pg = ro + rd*tg0;
-    vec3 ng = normalize(pg);
-    float NoL = max(dot(ng, uSunDir), 0.0);
-
-    vec3 T_sun_g = sampleTransmittanceToSun(pg + ng*1.0);
-
-    vec3 dirGC = normalize(ro - pg);
-    float seg = distance(ro, pg);
-    int N = 16; float dts = seg/float(N);
-    vec3 T_gc = vec3(1.0);
-    for(int i=0;i<N;++i){
-      vec3 ps = pg + dirGC*(dts*(float(i)+0.5));
-      float h  = length(ps);
-      float rhoR = densityR(h)*uRayleighScale;
-      float rhoM = densityM(h)*uMieScale;
-      vec3 sigma_t = betaR*rhoR + betaM*rhoM;
-      T_gc *= exp(-sigma_t * dts);
-    }
-
-    vec3 sunCol = vec3(1.0,0.995,0.98);
-    vec3 Eg     = sunGate * sunCol * T_sun_g * NoL; // 门控
-    vec3 Lg     = (uGroundAlbedo/PI) * Eg * T_gc;
-    vec3 color = ACESFilm(Lg * uExposure);
-    gl_FragColor = vec4(color,1.0);
-    return;
-  }
 
   // ---------- 天空主循环 ----------
   int   STEPS = max(uSteps,4);
@@ -315,9 +326,6 @@ void main(){
 
   // ----- Volumetric Clouds: Ray Marching (方案B：用 LUT 调制太阳->云) -----
   if (uCloudEnabled == 1) {
-    vec3 ro = vec3(0.0, Rg + 2.0, 0.0);
-    vec3 rd = getViewDir(vUv);
-
     // 云层半径
     float Rb = Rg + uCloudHeight;            // inner (bottom)
     float RtC = Rb + uCloudThickness;        // outer (top)
