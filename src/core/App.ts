@@ -24,6 +24,16 @@ export class App {
   private _cloudTime = 0;
 
   constructor(container: HTMLElement) {
+    const setTooltip = (ctrl: any, text: string) => {
+      const el = ctrl?.domElement as HTMLElement | undefined;
+      if (!el) return;
+      const root = el.closest('.controller') as HTMLElement | null;
+      const target = root || el;
+      target.setAttribute('title', text);
+      const input = target.querySelector('input, select, button, .name') as HTMLElement | null;
+      if (input) input.setAttribute('title', text);
+    };
+
     this.container = container;
     this.renderer = new THREE.WebGLRenderer({
       antialias: false,
@@ -67,16 +77,43 @@ export class App {
     sky2.add(this.params.sky2, 'exposure',          0.1, 2.0, 0.01);
 
     const sun = gui.addFolder('Sun');
-    sun.add(this.params.sun, 'angularDiameterDeg', 0.3, 0.7, 0.01);
-    sun.add(this.params.sun, 'intensity', 0.0, 100.0, 0.1);
-    sun.add(this.params.sun, 'haloStrength', 0.0, 2.0, 0.01);
-    sun.add(this.params.sun, 'haloFalloff', 0.5, 8.0, 0.1);
+    setTooltip(
+      sun.add(this.params.sun, 'angularDiameterDeg', 0.3, 0.7, 0.01),
+      'Apparent size of the sun disk in degrees.'
+    );
+    setTooltip(
+      sun.add(this.params.sun, 'intensity', 0.0, 100.0, 0.1),
+      'Brightness of direct sunlight and sky illumination.'
+    );
+    setTooltip(
+      sun.add(this.params.sun, 'haloStrength', 0.0, 2.0, 0.01),
+      'Strength of the sun glow/halo around the disk.'
+    );
+    setTooltip(
+      sun.add(this.params.sun, 'haloFalloff', 0.5, 8.0, 0.1),
+      'How quickly the halo fades away from the sun.'
+    );
     const ground = gui.addFolder('Ground');
-    ground.add(this.params.ground, 'mirrorRoughness', 0.0, 0.2, 0.005).name('mirrorBlur');
-    ground.add(this.params.ground, 'mirrorNoiseScale', 0.5, 8.0, 0.1).name('noiseScale');
-    ground.add(this.params.ground, 'rippleAmplitude', 0.0, 0.1, 0.002).name('rippleAmp');
-    ground.add(this.params.ground, 'rippleFrequency', 0.2, 4.0, 0.05).name('rippleFreq');
-    ground.add(this.params.ground, 'rippleSpeed', 0.0, 3.0, 0.05).name('rippleSpeed');
+    setTooltip(
+      ground.add(this.params.ground, 'mirrorRoughness', 0.0, 0.2, 0.005).name('mirrorBlur'),
+      'Amount of blur on the mirror reflection (0 = sharp, higher = blurrier).'
+    );
+    setTooltip(
+      ground.add(this.params.ground, 'mirrorNoiseScale', 0.5, 8.0, 0.1).name('noiseScale'),
+      'Texture scale that drives blur jitter; adjust to reduce grain patterns.'
+    );
+    setTooltip(
+      ground.add(this.params.ground, 'rippleAmplitude', 0.0, 0.2, 0.002).name('rippleAmp'),
+      'Height/strength of water-like ripples on the ground mirror.'
+    );
+    setTooltip(
+      ground.add(this.params.ground, 'rippleFrequency', 0.2, 8.0, 0.05).name('rippleFreq'),
+      'Spatial frequency of ripples; higher = tighter waves.'
+    );
+    setTooltip(
+      ground.add(this.params.ground, 'rippleSpeed', 0.0, 6.0, 0.05).name('rippleSpeed'),
+      'How fast ripples animate over time.'
+    );
 
     const place = gui.addFolder('Place');
     place.add(this.params.place, 'latitude', -66, 66, 0.01);
@@ -115,8 +152,8 @@ export class App {
     cloud.add(this.params.cloud, 'maxDistance', 500, 20000, 100);
     cloud.add(this.params.cloud, 'fadeStart', 0, 20000, 100);
     cloud.add(this.params.cloud, 'fadeEnd', 0, 20000, 100);
-    cloud.add(this.params.cloud, 'windX', -40, 40, 0.5);
-    cloud.add(this.params.cloud, 'windZ', -40, 40, 0.5);
+    cloud.add(this.params.cloud, 'windX', -160, 160, 0.5);
+    cloud.add(this.params.cloud, 'windZ', -160, 160, 0.5);
     cloud.add(this.params.cloud, 'ambientK', 0.0, 0.5, 0.01);
     cloud.add(this.params.cloud, 'opacity', 0.0, 2.0, 0.01);
 

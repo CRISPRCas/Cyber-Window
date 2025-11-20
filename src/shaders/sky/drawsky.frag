@@ -205,12 +205,27 @@ void main(){
     vec3 pg = ro + rd*tg0;
     vec3 ng = normalize(pg);
 
-    // Small time-varying ripples to mimic water normals
+    // Small time-varying ripples to mimic water normals (with decorrelated noise)
     vec3 wt, wb; orthoBasis(ng, wt, wb);
-    float wt0 = sin(dot(pg.xz, vec2(0.021, 0.013)) * (5.0 * uGroundRippleFreq) + uCloudTime * (1.5 * uGroundRippleSpeed));
-    float wt1 = sin(dot(pg.xz, vec2(-0.017, 0.019)) * (4.0 * uGroundRippleFreq) - uCloudTime * (1.1 * uGroundRippleSpeed));
-    float wt2 = sin(dot(pg.xz, vec2(0.011, -0.027)) * (6.0 * uGroundRippleFreq) + uCloudTime * (0.9 * uGroundRippleSpeed));
-    vec2 ripple = vec2(wt0 + wt2, wt1 - wt2) * (0.5 * uGroundRippleAmp);
+    vec2 p = pg.xz * (0.018 * uGroundRippleFreq);
+    float tWave = uCloudTime * uGroundRippleSpeed;
+
+    // Noise gradients for smoother, less repetitive perturbation
+    vec2 du = vec2(0.011, 0.0);
+    vec2 dv = vec2(0.0, 0.011);
+    float h0 = texture2D(uPerlinTex, p + vec2(0.17, -0.09) + vec2(0.05, 0.03)*tWave).r;
+    float hx = texture2D(uPerlinTex, p + vec2(-0.13, 0.21) + vec2(-0.04, 0.02)*tWave + du).r;
+    float hz = texture2D(uPerlinTex, p + vec2(0.08, 0.16) + vec2(0.02, -0.05)*tWave + dv).r;
+    vec2 grad = vec2(hx - h0, hz - h0);
+
+    // Add light hash wobble to break temporal repetition
+    grad += (vec2(hash12(p * 4.7 + tWave), hash12(p * 3.9 - tWave)) - 0.5) * 0.12;
+
+    // Distance-based fade (avoid patterned far field)
+    float horizDist = length(pg.xz);
+    float rippleFade = 1.0 - smoothstep(900.0, 4200.0, horizDist);
+
+    vec2 ripple = grad * (uGroundRippleAmp * rippleFade);
     ng = normalize(ng + wt * ripple.x + wb * ripple.y);
 
     // Mirror reflection with softened jitter (filtered noise to avoid grain)

@@ -36,9 +36,9 @@ export function createParams() {
     ground: {
       mirrorRoughness: 0.05,
       mirrorNoiseScale: 2.0,
-      rippleAmplitude: 0.03,
-      rippleFrequency: 1.6,
-      rippleSpeed: 1.0,
+      rippleAmplitude: 0.10, // set to previous max, slider max increased
+      rippleFrequency: 4.0,
+      rippleSpeed: 3.0,
     },
 
     cloud: {
@@ -51,8 +51,8 @@ export function createParams() {
       maxDistance:2000.0,  // 每条光线在云层内的最大行进距离（米）
       fadeStart:  2000.0,   // 距离开始淡出
       fadeEnd:    8000.0,   // 距离处完全消失
-      windX:      6.0,      // 风速（XZ）
-      windZ:      3.0,
+      windX:      40.0,      // 风速（XZ）
+      windZ:      40.0,
       ambientK:   0.03,     // 近似天光（软填充）
       opacity:    1.8,      // 最终云贡献的整体乘子
       enabled:    true      // 开关（可选）
