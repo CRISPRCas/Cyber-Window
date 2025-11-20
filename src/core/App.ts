@@ -16,6 +16,7 @@ export class App {
   private controls: OrbitControls;
   private perf: PerfTuner;
   private realtime: RealTimeService;
+  private sunDir = new THREE.Vector3();
 
   private trans: TransmittancePass;
   private drawSky: DrawSkyPass;
@@ -146,6 +147,17 @@ export class App {
     });
   }
 
+  snapToSun() {
+    if (this.sunDir.lengthSq() < 1e-6) return;
+    const target = this.controls.target.clone();
+    const radius = this.camera.position.distanceTo(target) || 3.0;
+    const dir = this.sunDir.clone().normalize();
+    const pos = target.clone().sub(dir.multiplyScalar(radius));
+    this.camera.position.copy(pos);
+    this.camera.lookAt(target);
+    this.controls.update();
+  }
+
   private refreshLUT() {
     this.trans.updateAtmosphere(this.params.atmosphere);
     this.trans.render();
@@ -162,6 +174,7 @@ export class App {
       this.params.time.hour - this.params.time.utcOffset, this.params.time.minute, 0, 0
     ));
     const { dir /*, altDeg*/ } = computeSunDirection(this.params.place.latitude, this.params.place.longitude, date);
+    this.sunDir.set(dir.x, dir.y, dir.z);
     this.drawSky.render(dir);
   }
 }

@@ -2,6 +2,9 @@ import { App } from './core/App';
 
 const app = new App(document.getElementById('app')!);
 
+const snapBtn = document.getElementById('snap-sun');
+if (snapBtn) snapBtn.addEventListener('click', () => app.snapToSun());
+
 const fpsEl = document.getElementById('fps')!;
 let last = performance.now(), frames = 0, acc = 0;
 function loop() {
