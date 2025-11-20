@@ -1,6 +1,6 @@
 # Cyber Window - Bruneton Sky
 
-Physical sky/sun rendering with volumetric clouds, built on Three.js and Vite. Ships with a GitHub Actions workflow that deploys to GitHub Pages.
+Physical sky/sun rendering with volumetric clouds, built on Three.js and Vite. Ships with a GitHub Actions workflow that deploys to GitHub Pages. Live demo: <https://crisprcas.github.io/Cyber-Window/>
 
 ## License
 MIT License — see `LICENSE`.
