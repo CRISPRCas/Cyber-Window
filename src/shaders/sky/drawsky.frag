@@ -304,6 +304,10 @@ void main(){
 
     vec3 sigma_t = betaR*rhoR + betaM*rhoM;
     Tcam *= exp(-sigma_t * dt);
+    if (max(Tcam.r, max(Tcam.g, Tcam.b)) < 0.0015) {
+      // Mostly extinguished; skip the rest of the march
+      break;
+    }
     t += dt;
   }
 

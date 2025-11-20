@@ -5,12 +5,15 @@ import { computeSunDirection } from '../data/solar';
 import { TransmittancePass } from '../sky/TransmittancePass';
 import { DrawSkyPass } from '../sky/DrawSkyPass';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { PerfTuner } from './PerfTuner';
 
 export class App {
+  private container: HTMLElement;
   private renderer: THREE.WebGLRenderer;
   private camera: THREE.PerspectiveCamera;
   private params: Params;
   private controls: OrbitControls;
+  private perf: PerfTuner;
 
   private trans: TransmittancePass;
   private drawSky: DrawSkyPass;
@@ -18,9 +21,13 @@ export class App {
   private _cloudTime = 0;
 
   constructor(container: HTMLElement) {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.container = container;
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: false,
+      powerPreference: 'high-performance'
+    });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -114,6 +121,13 @@ export class App {
       this.drawSky.setSize(container.clientWidth, container.clientHeight);
     });
     this.drawSky.setSize(container.clientWidth, container.clientHeight);
+
+    this.perf = new PerfTuner({
+      renderer: this.renderer,
+      drawSky: this.drawSky,
+      params: this.params,
+      container
+    });
   }
 
   private refreshLUT() {
@@ -125,6 +139,7 @@ export class App {
     this.controls.update();
     this._cloudTime += dt;
     this.drawSky.setCloudTime(this._cloudTime);
+    this.perf.update(dt);
 
     const date = new Date(Date.UTC(
       this.params.time.year, this.params.time.month - 1, this.params.time.day,

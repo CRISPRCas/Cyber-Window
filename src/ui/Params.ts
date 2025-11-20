@@ -17,7 +17,7 @@ export function createParams() {
       utcOffset: 8
     },
     render: {
-      singleScatteringSteps: 24
+      singleScatteringSteps: 20
     },
     sun: {
       angularDiameterDeg: 0.53,
@@ -39,7 +39,7 @@ export function createParams() {
       thickness:  1100.0,   // 云层厚度（米）
       sigmaT:     0.2,     // 吸收/消光系数（越大越厚/越暗）
       phaseG:     0.6,      // Henyey–Greenstein g（前向散射）
-      steps:      128,       // Ray marching 步数
+      steps:      96,       // Ray marching 步数
       maxDistance:2000.0,  // 每条光线在云层内的最大行进距离（米）
       windX:      6.0,      // 风速（XZ）
       windZ:      3.0,
