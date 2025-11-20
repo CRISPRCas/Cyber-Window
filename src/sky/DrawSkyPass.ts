@@ -22,6 +22,7 @@ export class DrawSkyPass {
     const pCloud = (params as any).cloud ?? ((params as any).cloud = {
       coverage: 0.45, height: 1500, thickness: 1200,
       sigmaT: 0.85, phaseG: 0.6, steps: 48, maxDistance: 12000,
+      fadeStart: 8000, fadeEnd: 12000,
       windX: 6.0, windZ: 3.0, ambientK: 0.06, opacity: 1.0, enabled: true
     });
 
@@ -72,6 +73,8 @@ export class DrawSkyPass {
         uCloudPhaseG:     { value: pCloud.phaseG },
         uCloudSteps:      { value: pCloud.steps },
         uCloudMaxDistance:{ value: pCloud.maxDistance },
+        uCloudFadeStart:  { value: pCloud.fadeStart },
+        uCloudFadeEnd:    { value: pCloud.fadeEnd },
         uCloudWind:       { value: new THREE.Vector2(pCloud.windX, pCloud.windZ) },
         uCloudTime:       { value: 0.0 },
         uCloudAmbientK:   { value: pCloud.ambientK },
@@ -172,6 +175,14 @@ export class DrawSkyPass {
     Object.defineProperty((params as any).cloud, 'maxDistance', {
       set: (v: number)=>{ this.mat.uniforms.uCloudMaxDistance.value = v; },
       get: ()=> this.mat.uniforms.uCloudMaxDistance.value
+    });
+    Object.defineProperty((params as any).cloud, 'fadeStart', {
+      set: (v: number)=>{ this.mat.uniforms.uCloudFadeStart.value = v; },
+      get: ()=> this.mat.uniforms.uCloudFadeStart.value
+    });
+    Object.defineProperty((params as any).cloud, 'fadeEnd', {
+      set: (v: number)=>{ this.mat.uniforms.uCloudFadeEnd.value = v; },
+      get: ()=> this.mat.uniforms.uCloudFadeEnd.value
     });
     Object.defineProperty((params as any).cloud, 'windX', {
       set: (v: number)=>{ this.mat.uniforms.uCloudWind.value.x = v; },

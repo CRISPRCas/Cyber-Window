@@ -41,6 +41,8 @@ export function createParams() {
       phaseG:     0.6,      // Henyey–Greenstein g（前向散射）
       steps:      96,       // Ray marching 步数
       maxDistance:2000.0,  // 每条光线在云层内的最大行进距离（米）
+      fadeStart:  2000.0,   // 距离开始淡出
+      fadeEnd:    8000.0,   // 距离处完全消失
       windX:      6.0,      // 风速（XZ）
       windZ:      3.0,
       ambientK:   0.03,     // 近似天光（软填充）

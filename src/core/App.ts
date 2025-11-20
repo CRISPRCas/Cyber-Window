@@ -105,7 +105,9 @@ export class App {
     cloud.add(this.params.cloud, 'sigmaT', 0.1, 2.0, 0.01);
     cloud.add(this.params.cloud, 'phaseG', 0.0, 0.9, 0.01);
     cloud.add(this.params.cloud, 'steps', 8, 128, 1);
-    cloud.add(this.params.cloud, 'maxDistance', 2000, 40000, 100);
+    cloud.add(this.params.cloud, 'maxDistance', 500, 20000, 100);
+    cloud.add(this.params.cloud, 'fadeStart', 0, 20000, 100);
+    cloud.add(this.params.cloud, 'fadeEnd', 0, 20000, 100);
     cloud.add(this.params.cloud, 'windX', -40, 40, 0.5);
     cloud.add(this.params.cloud, 'windZ', -40, 40, 0.5);
     cloud.add(this.params.cloud, 'ambientK', 0.0, 0.5, 0.01);

@@ -27,6 +27,8 @@ uniform float uCloudSigmaT;
 uniform float uCloudPhaseG;
 uniform int   uCloudSteps;
 uniform float uCloudMaxDistance;
+uniform float uCloudFadeStart;
+uniform float uCloudFadeEnd;
 uniform vec2  uCloudWind;
 uniform float uCloudTime;
 uniform float uCloudAmbientK;
@@ -352,16 +354,16 @@ void main(){
       float tMax = t0 + uCloudMaxDistance;
       t1 = min(t1, tMax);
 
-      if (t1 > t0) {
-        int STEPS = max(uCloudSteps, 4);
-        float dt = (t1 - t0) / float(STEPS);
-        float t = t0 + 0.5 * dt;
+        if (t1 > t0) {
+          int STEPS = max(uCloudSteps, 4);
+          float dt = (t1 - t0) / float(STEPS);
+          float t = t0 + 0.5 * dt;
 
-        vec3 Tcloud = vec3(1.0);
-        vec3 Lcloud = vec3(0.0);
+          vec3 Tcloud = vec3(1.0);
+          vec3 Lcloud = vec3(0.0);
 
-        // 风偏移
-        vec3 windOfs = vec3(uCloudWind.x, 0.0, uCloudWind.y) * uCloudTime * 0.02;
+          // 风偏移
+          vec3 windOfs = vec3(uCloudWind.x, 0.0, uCloudWind.y) * uCloudTime * 0.02;
 
         for (int i=0; i<256; ++i) {
           if (i >= STEPS) break;
@@ -369,11 +371,17 @@ void main(){
           vec3 p = ro + rd * t;
           float h = length(p) - Rg;
 
-          // 云密度（0..1）
-          float dens = cloud_density(p, windOfs, h);
-          if (dens > 1e-4) {
-            float sigma_t = uCloudSigmaT * dens;
-            float alpha   = 1.0 - exp(-sigma_t * dt);
+            // 云密度（0..1）
+            float dens = cloud_density(p, windOfs, h);
+              // 基于水平距离的衰减：近处概率≈1，超出半径快速衰减到0
+              float horizDist = length((p - ro).xz);
+              float fadeStart = min(uCloudFadeStart, uCloudFadeEnd);
+              float fadeEnd   = max(uCloudFadeStart, uCloudFadeEnd) + 1e-3;
+              float rangeFade = 1.0 - smoothstep(fadeStart, fadeEnd, horizDist);
+              dens *= rangeFade;
+            if (dens > 1e-4) {
+              float sigma_t = uCloudSigmaT * dens;
+              float alpha   = 1.0 - exp(-sigma_t * dt);
 
             // 方案B：太阳->样本点的大气透过率（用 LUT）
             vec3 T_sun = sampleTransmittanceToSun(p);
