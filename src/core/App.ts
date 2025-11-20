@@ -167,7 +167,8 @@ export class App {
     // Perlin 纹理
     {
       const loader = new THREE.TextureLoader();
-      const perlin = loader.load('assets/perlin256.png');
+      const perlinUrl = new URL('../assets/perlin256.png', import.meta.url).href;
+      const perlin = loader.load(perlinUrl);
       perlin.wrapS = perlin.wrapT = THREE.RepeatWrapping;
       perlin.minFilter = THREE.LinearMipMapLinearFilter;
       perlin.magFilter = THREE.LinearFilter;
