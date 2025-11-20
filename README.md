@@ -2,6 +2,9 @@
 
 Physical sky/sun rendering with volumetric clouds, built on Three.js and Vite. Ships with a GitHub Actions workflow that deploys to GitHub Pages.
 
+## License
+MIT License — see `LICENSE`.
+
 ## Key formulas and approximations
 
 - **Atmospheric transmittance (Beer–Lambert):**
@@ -194,4 +197,3 @@ Custom domain (optional):
 | realtime.enabled | Auto geolocation + weather | bool | false |
 | realtime.status | Status text (read-only) | — | manual |
 | realtime.lastUpdate | Last fetch time (read-only) | — | — |
-
