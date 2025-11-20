@@ -1,2 +1,7 @@
 import { defineConfig } from 'vite';
-export default defineConfig({ server: { open: true } });
+
+// `base` is required so assets resolve correctly when served from /Cyber-Window/ on GitHub Pages.
+export default defineConfig({
+  base: '/Cyber-Window/',
+  server: { open: true }
+});
