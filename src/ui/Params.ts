@@ -36,26 +36,26 @@ export function createParams() {
     ground: {
       mirrorRoughness: 0.05,
       mirrorNoiseScale: 2.0,
-      rippleAmplitude: 0.10, // set to previous max, slider max increased
+      rippleAmplitude: 0.10, // previous max, slider max increased
       rippleFrequency: 4.0,
       rippleSpeed: 3.0,
     },
 
     cloud: {
-      coverage:   0.36,     // 覆盖度 0..1
-      height:     640.0,   // 云底高度（米）
-      thickness:  1100.0,   // 云层厚度（米）
-      sigmaT:     0.2,     // 吸收/消光系数（越大越厚/越暗）
-      phaseG:     0.6,      // Henyey–Greenstein g（前向散射）
-      steps:      96,       // Ray marching 步数
-      maxDistance:2000.0,  // 每条光线在云层内的最大行进距离（米）
-      fadeStart:  2000.0,   // 距离开始淡出
-      fadeEnd:    8000.0,   // 距离处完全消失
-      windX:      40.0,      // 风速（XZ）
+      coverage:   0.36,     // coverage 0..1
+      height:     640.0,    // cloud base height (m)
+      thickness:  1100.0,   // cloud thickness (m)
+      sigmaT:     0.2,      // extinction coefficient
+      phaseG:     0.6,      // Henyey–Greenstein anisotropy
+      steps:      96,       // ray-march steps
+      maxDistance:2000.0,   // max march distance per ray (m)
+      fadeStart:  2000.0,   // distance fade start
+      fadeEnd:    8000.0,   // distance fade end
+      windX:      40.0,     // wind X (XZ plane)
       windZ:      40.0,
-      ambientK:   0.03,     // 近似天光（软填充）
-      opacity:    1.8,      // 最终云贡献的整体乘子
-      enabled:    true      // 开关（可选）
+      ambientK:   0.03,     // ambient fill light
+      opacity:    1.8,      // overall cloud opacity multiplier
+      enabled:    true      // enable/disable clouds
     },
     realtime: {
       enabled: false,

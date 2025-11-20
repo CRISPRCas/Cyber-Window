@@ -59,5 +59,3 @@ export type AtmosphereParams = {
   mieScale: number;
   groundAlbedo: number;
 };
-
-// console.log('trans length=', transFrag.length);

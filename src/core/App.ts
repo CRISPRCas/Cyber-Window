@@ -140,7 +140,7 @@ export class App {
     if ((statusCtrl as any).disable) (statusCtrl as any).disable();
     if ((updateCtrl as any).disable) (updateCtrl as any).disable();
 
-    // ===== Cloud GUI =====
+    // Cloud GUI
     const cloud = gui.addFolder('Cloud (volumetric)');
     cloud.add(this.params.cloud, 'enabled').name('enabled');
     cloud.add(this.params.cloud, 'coverage', 0.0, 1.0, 0.01);
@@ -157,14 +157,14 @@ export class App {
     cloud.add(this.params.cloud, 'ambientK', 0.0, 0.5, 0.01);
     cloud.add(this.params.cloud, 'opacity', 0.0, 2.0, 0.01);
 
-    // LUT
+    // Transmittance LUT
     this.trans = new TransmittancePass(this.renderer, this.params.atmosphere);
     this.trans.render();
 
     // Sky draw pass
     this.drawSky = new DrawSkyPass(this.renderer, this.camera, this.trans.texture, this.params);
 
-    // Perlin 纹理
+    // Perlin noise texture
     {
       const loader = new THREE.TextureLoader();
       const perlinUrl = new URL('../assets/perlin256.png', import.meta.url).href;

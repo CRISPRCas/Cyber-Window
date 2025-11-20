@@ -15,10 +15,10 @@ export class DrawSkyPass {
     this.camera2D = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     const geo = new THREE.PlaneGeometry(2, 2);
 
-    // 安全默认值
+    // Conservative defaults in case params are missing
     const defaultExposure = (params as any)?.sky2?.exposure ?? 0.9;
 
-    // 云参数兜底
+    // Cloud params fallback when not provided
     const pCloud = (params as any).cloud ?? ((params as any).cloud = {
       coverage: 0.45, height: 1500, thickness: 1200,
       sigmaT: 0.85, phaseG: 0.6, steps: 48, maxDistance: 12000,
@@ -28,14 +28,12 @@ export class DrawSkyPass {
 
     this.mat = new THREE.ShaderMaterial({
       uniforms: {
-        // Atmos/LUT/camera
         uTransTex: { value: transTex },
         uInvProj:  { value: new THREE.Matrix4() },
         uInvView:  { value: new THREE.Matrix4() },
         uCamPos:   { value: new THREE.Vector3() },
         uSunDir:   { value: new THREE.Vector3(0,1,0) },
 
-        // Atmos params
         uRayleighScale: { value: params.atmosphere.rayleighScale },
         uMieScale:      { value: params.atmosphere.mieScale },
         uGroundAlbedo:  { value: params.atmosphere.groundAlbedo },
@@ -47,29 +45,23 @@ export class DrawSkyPass {
         uGroundRippleFreq: { value: params.ground.rippleFrequency },
         uGroundRippleSpeed:{ value: params.ground.rippleSpeed },
 
-        // Sun
         uSunAngularRadius: { value: (params.sun.angularDiameterDeg * Math.PI/180) * 0.5 },
         uSunIntensity:     { value: params.sun.intensity },
         uHaloStrength:     { value: params.sun.haloStrength },
         uHaloFalloff:      { value: params.sun.haloFalloff },
 
-        // Sky-2
         uMultiScatterBoost: { value: params.sky2.multiScatterBoost },
         uAerialStrength:    { value: params.sky2.aerialStrength },
         uAerialDistance:    { value: params.sky2.aerialDistance },
         uSkySunIntensity:   { value: params.sky2.skySunIntensity },
 
-        // MS approx
         uMS_Steps:        { value: 5 },
         uMS_Strength:     { value: 1.0 },
 
-        // Phase
         uMieG:            { value: 0.60 },
 
-        // Tone map
         uExposure:        { value: defaultExposure },
 
-        // Clouds (RM)
         uPerlinTex:       { value: null as any as THREE.Texture },
         uCloudCoverage:   { value: pCloud.coverage },
         uCloudHeight:     { value: pCloud.height },
@@ -95,7 +87,7 @@ export class DrawSkyPass {
       depthTest: false
     });
 
-    // —— hooks（沿用你原有的风格） ——
+    // Param hooks (two-way binding between GUI params and uniforms)
     Object.defineProperty(params.render, 'singleScatteringSteps', {
       set: (v: number)=>{ this.mat.uniforms.uSteps.value = v; },
       get: ()=> this.mat.uniforms.uSteps.value
@@ -165,7 +157,6 @@ export class DrawSkyPass {
       get: ()=> this.mat.uniforms.uSkySunIntensity.value
     });
 
-    // 曝光
     if (!(params as any).sky2.exposure) { (params as any).sky2.exposure = defaultExposure; }
     Object.defineProperty((params as any).sky2, 'exposure', {
       set: (v: number)=>{ this.mat.uniforms.uExposure.value = v; },

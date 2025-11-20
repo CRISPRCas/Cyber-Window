@@ -42,20 +42,20 @@ uniform int   uCloudEnabled;
 
 
 // Fast approx controls
-uniform float uMultiScatterBoost;   // 可设 0
+uniform float uMultiScatterBoost;
 uniform float uAerialStrength;
 uniform float uAerialDistance;
-uniform float uSkySunIntensity;     // 天空散射使用的太阳强度
+uniform float uSkySunIntensity;
 
 // One-bounce multiple scattering
-uniform int   uMS_Steps;            // 4~6
-uniform float uMS_Strength;         // 0.8~1.2
+uniform int   uMS_Steps;
+uniform float uMS_Strength;
 
 // Phase
-uniform float uMieG;                // 0.60~0.70
+uniform float uMieG;
 
 // Tone mapping
-uniform float uExposure;            // 曝光
+uniform float uExposure;
 
 const float PI = 3.141592653589793;
 const float Rg = 6360000.0;
@@ -84,7 +84,7 @@ float hgPhase(float ct, float g){
   return (1.0-g2)/(4.0*PI*pow(max(1e-4, 1.0+g2-2.0*g*ct), 1.5));
 }
 
-// 太阳光盘角盘平均（4 taps）
+// Sun disk angular average (4 taps)
 float hgPhaseAveraged(vec3 rd, vec3 sunDir, float g, float theta){
   vec3 t, b; orthoBasis(sunDir, t, b);
   vec3 d1 = normalize(sunDir * cos(theta) + t * sin(theta));
@@ -131,7 +131,7 @@ vec3 sampleTransmittance(vec3 pos, vec3 dir){
   return texture2D(uTransTex, rMuToUV(r,mu)).rgb;
 }
 
-// --- Sun visibility with ground occlusion ---------------------------------
+// Sun visibility with ground occlusion
 vec3 sampleTransmittanceToSun(vec3 pos){
   float r = length(pos);
   vec3  up = pos / r;
@@ -140,25 +140,23 @@ vec3 sampleTransmittanceToSun(vec3 pos){
   if (mu < mu_min) return vec3(0.0);
   return texture2D(uTransTex, rMuToUV(r, mu)).rgb;
 }
-// --------------------------------------------------------------------------
-
-// 小旋转矩阵，用于打散各_octave 的相关性
+// Small rotation matrix to decorrelate octaves
 const mat3 FBM_M = mat3(
    0.00,  0.80,  0.60,
   -0.80,  0.36, -0.48,
   -0.60, -0.48,  0.64
 );
 
-// 从 2D Perlin 纹理取样（用 XZ 做平面，低频比例 0.01 可按需调）
+// Sample tiled Perlin texture in XZ plane (low frequency scale 0.01)
 float noise3D(in vec3 p) {
     vec2 uv = p.xz * 0.01;
     return texture2D(uPerlinTex, uv).r;
 }
 
-// 分形布朗运动（FBM）
+// Fractal Brownian motion
 float fbm(vec3 p) {
     float t;
-    float mult = 2.76434;  // 频率倍增
+    float mult = 2.76434;
     t  = 0.51749673 * noise3D(p); p = FBM_M * p * mult;
     t += 0.25584929 * noise3D(p); p = FBM_M * p * mult;
     t += 0.12527603 * noise3D(p); p = FBM_M * p * mult;
@@ -166,21 +164,21 @@ float fbm(vec3 p) {
     return t;
 }
 
-// 云密度（球面高度版）
+// Cloud density on spherical shell
 float cloud_density(vec3 worldPos, vec3 offset, float h) {
-    // 形状坐标（低频缩放 + 风偏移）
+    // Shape coordinates (low frequency scale + wind offset)
     vec3 p = worldPos * 0.0212242 + offset;
 
     float dens = fbm(p);
 
-    // 覆盖度阈值
+    // Coverage threshold
     float cov = 1.0 - uCloudCoverage;
     dens *= smoothstep(cov, cov + 0.05, dens);
 
-    // 高度衰减：h = |p|-Rg（以米计）
+    // Height attenuation: h = |p|-Rg (meters)
     float t = clamp((h - uCloudHeight) / max(1.0, uCloudThickness), 0.0, 1.0);
     float heightAttenuation = (1.0 - t);
-    heightAttenuation *= heightAttenuation; // 边界更柔
+    heightAttenuation *= heightAttenuation;
     dens *= heightAttenuation;
 
     return clamp(dens, 0.0, 1.0);
