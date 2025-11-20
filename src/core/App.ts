@@ -6,6 +6,7 @@ import { TransmittancePass } from '../sky/TransmittancePass';
 import { DrawSkyPass } from '../sky/DrawSkyPass';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PerfTuner } from './PerfTuner';
+import { RealTimeService } from './RealTimeService';
 
 export class App {
   private container: HTMLElement;
@@ -14,6 +15,7 @@ export class App {
   private params: Params;
   private controls: OrbitControls;
   private perf: PerfTuner;
+  private realtime: RealTimeService;
 
   private trans: TransmittancePass;
   private drawSky: DrawSkyPass;
@@ -47,6 +49,7 @@ export class App {
     this.controls.update();
 
     this.params = createParams();
+    this.realtime = new RealTimeService(this.params);
 
     const gui = new GUI();
 
@@ -81,6 +84,17 @@ export class App {
     time.add(this.params.time, 'minute', 0, 59, 1);
 
     gui.add(this.params.render, 'singleScatteringSteps', 8, 64, 1).name('skySteps');
+
+    const realFolder = gui.addFolder('Real-time');
+    const rtToggle = realFolder.add(this.params.realtime, 'enabled').name('Use real-time');
+    rtToggle.onChange((v: boolean) => {
+      if (v) this.realtime.start();
+      else this.realtime.stop();
+    });
+    const statusCtrl = realFolder.add(this.params.realtime, 'status').name('status').listen();
+    const updateCtrl = realFolder.add(this.params.realtime, 'lastUpdate').name('lastUpdate').listen();
+    if ((statusCtrl as any).disable) (statusCtrl as any).disable();
+    if ((updateCtrl as any).disable) (updateCtrl as any).disable();
 
     // ===== Cloud GUI =====
     const cloud = gui.addFolder('Cloud (volumetric)');

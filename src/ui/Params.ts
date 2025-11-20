@@ -47,5 +47,10 @@ export function createParams() {
       opacity:    1.8,      // 最终云贡献的整体乘子
       enabled:    true      // 开关（可选）
     },
+    realtime: {
+      enabled: false,
+      status: 'manual',
+      lastUpdate: '—'
+    }
   };
 }
