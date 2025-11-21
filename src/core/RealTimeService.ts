@@ -2,29 +2,47 @@ import { Params } from '../ui/Params';
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
-const FETCH_INTERVAL_MS = MINUTE_MS;
 
 type Status = 'manual' | 'locating' | 'fetching-weather' | 'ok' | 'error';
 
 export class RealTimeService {
   private params: Params;
-  private timer: number | null = null;
+  private timeTimer: number | null = null;
+  private weatherTimer: number | null = null;
   private running = false;
+  private hasLocation = false;
 
   constructor(params: Params) {
     this.params = params;
   }
 
-  start() {
+  async start() {
     if (this.running) return;
     this.running = true;
-    this.tick();
+    this.setStatus('locating');
+    const located = await this.acquireLocation();
+    if (!this.running) return;
+    if (!located) {
+      this.setStatus('error', 'location denied');
+      this.running = false;
+      return;
+    }
+
+    // Initial syncs
+    this.updateTime();
+    await this.updateWeather();
+
+    // Timers: time every minute, weather every hour
+    this.timeTimer = window.setInterval(() => this.updateTime(), MINUTE_MS);
+    this.weatherTimer = window.setInterval(() => this.updateWeather(), HOUR_MS);
   }
 
   stop() {
     this.running = false;
-    if (this.timer !== null) window.clearTimeout(this.timer);
-    this.timer = null;
+    if (this.timeTimer !== null) window.clearInterval(this.timeTimer);
+    if (this.weatherTimer !== null) window.clearInterval(this.weatherTimer);
+    this.timeTimer = null;
+    this.weatherTimer = null;
     this.setStatus('manual');
   }
 
@@ -32,20 +50,12 @@ export class RealTimeService {
     this.params.realtime.status = msg ? `${status}: ${msg}` : status;
   }
 
-  private async tick() {
-    await this.updateOnce();
-    if (this.running) {
-      this.timer = window.setTimeout(() => this.tick(), FETCH_INTERVAL_MS);
-    }
-  }
-
-  private async updateOnce() {
+  private async acquireLocation(): Promise<boolean> {
     if (!navigator.geolocation) {
       this.setStatus('error', 'geolocation unavailable');
-      return;
+      return false;
     }
 
-    this.setStatus('locating');
     const pos = await new Promise<GeolocationPosition | null>(resolve => {
       navigator.geolocation.getCurrentPosition(
         p => resolve(p),
@@ -53,25 +63,36 @@ export class RealTimeService {
         { enableHighAccuracy: false, timeout: 5000 }
       );
     });
-    if (!pos) {
-      this.setStatus('error', 'location denied');
-      return;
-    }
+    if (!pos) return false;
 
     const { latitude, longitude } = pos.coords;
     this.params.place.latitude = latitude;
     this.params.place.longitude = longitude;
+    this.hasLocation = true;
+    this.setStatus('ok');
+    return true;
+  }
 
-    // System time + timezone offset (minutes -> hours)
+  private updateTime() {
+    if (!this.running) return;
     const now = new Date();
+    // System time + timezone offset (minutes -> hours)
     this.params.time.year = now.getFullYear();
     this.params.time.month = now.getMonth() + 1;
     this.params.time.day = now.getDate();
     this.params.time.hour = now.getHours();
     this.params.time.minute = now.getMinutes();
     this.params.time.utcOffset = -now.getTimezoneOffset() / 60;
+    this.params.realtime.lastUpdate = now.toLocaleTimeString();
+  }
 
+  private async updateWeather() {
+    if (!this.running || !this.hasLocation) return;
+    const now = new Date();
     this.setStatus('fetching-weather');
+
+    const latitude = this.params.place.latitude;
+    const longitude = this.params.place.longitude;
 
     try {
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude.toFixed(
