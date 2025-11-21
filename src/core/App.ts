@@ -116,16 +116,16 @@ export class App {
     );
 
     const place = gui.addFolder('Place');
-    place.add(this.params.place, 'latitude', -66, 66, 0.01);
-    place.add(this.params.place, 'longitude', -180, 180, 0.01);
-    place.add(this.params.time, 'utcOffset', -12, 14, 1).name('UTC offset');
+    place.add(this.params.place, 'latitude', -66, 66, 0.01).listen();
+    place.add(this.params.place, 'longitude', -180, 180, 0.01).listen();
+    place.add(this.params.time, 'utcOffset', -12, 14, 1).name('UTC offset').listen();
 
     const time = gui.addFolder('Time');
-    time.add(this.params.time, 'year', 2000, 2035, 1);
-    time.add(this.params.time, 'month', 1, 12, 1);
-    time.add(this.params.time, 'day', 1, 31, 1);
-    time.add(this.params.time, 'hour', 0, 23, 1);
-    time.add(this.params.time, 'minute', 0, 59, 1);
+    time.add(this.params.time, 'year', 2000, 2035, 1).listen();
+    time.add(this.params.time, 'month', 1, 12, 1).listen();
+    time.add(this.params.time, 'day', 1, 31, 1).listen();
+    time.add(this.params.time, 'hour', 0, 23, 1).listen();
+    time.add(this.params.time, 'minute', 0, 59, 1).listen();
 
     gui.add(this.params.render, 'singleScatteringSteps', 8, 64, 1).name('skySteps');
 

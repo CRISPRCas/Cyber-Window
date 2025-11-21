@@ -1,7 +1,7 @@
 import { Params } from '../ui/Params';
 
-const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
+const FETCH_INTERVAL_MS = HOUR_MS;
 
 type Status = 'manual' | 'locating' | 'fetching-weather' | 'ok' | 'error';
 
@@ -34,7 +34,7 @@ export class RealTimeService {
   private async tick() {
     await this.updateOnce();
     if (this.running) {
-      this.timer = window.setTimeout(() => this.tick(), MINUTE_MS);
+      this.timer = window.setTimeout(() => this.tick(), FETCH_INTERVAL_MS);
     }
   }
 
