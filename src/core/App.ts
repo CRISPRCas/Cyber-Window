@@ -65,16 +65,34 @@ export class App {
     const gui = new GUI();
 
     const sky = gui.addFolder('Sky');
-    sky.add(this.params.atmosphere, 'rayleighScale', 0.1, 5.0, 0.01).name('rayleighScale').onChange(()=>this.refreshLUT());
-    sky.add(this.params.atmosphere, 'mieScale', 0.1, 5.0, 0.01).name('mieScale').onChange(()=>this.refreshLUT());
-    sky.add(this.params.atmosphere, 'groundAlbedo', 0.0, 1.0, 0.01).name('groundAlbedo');
+    const rayleighCtrl = sky.add(this.params.atmosphere, 'rayleighScale', 0.1, 5.0, 0.01).name('rayleighScale').onChange(()=>this.refreshLUT());
+    setTooltip(rayleighCtrl, 'Rayleigh scattering scale; higher = bluer/brighter sky.');
+    const mieCtrl = sky.add(this.params.atmosphere, 'mieScale', 0.1, 5.0, 0.01).name('mieScale').onChange(()=>this.refreshLUT());
+    setTooltip(mieCtrl, 'Mie haze density; increases low-angle glow and overall haze.');
+    const albedoCtrl = sky.add(this.params.atmosphere, 'groundAlbedo', 0.0, 1.0, 0.01).name('groundAlbedo');
+    setTooltip(albedoCtrl, 'Ground reflectance feeding indirect sky light.');
 
     const sky2 = gui.addFolder('Sky-2 (fast approx)');
-    sky2.add(this.params.sky2, 'multiScatterBoost', 0.0, 1.0, 0.01);
-    sky2.add(this.params.sky2, 'aerialStrength',    0.0, 1.0, 0.01);
-    sky2.add(this.params.sky2, 'aerialDistance',    20000, 200000, 1000);
-    sky2.add(this.params.sky2, 'skySunIntensity',   0.0, 60.0, 0.5);
-    sky2.add(this.params.sky2, 'exposure',          0.1, 2.0, 0.01);
+    setTooltip(
+      sky2.add(this.params.sky2, 'multiScatterBoost', 0.0, 1.0, 0.01),
+      'Adds extra multi-scatter energy for a brighter dome (artistic).'
+    );
+    setTooltip(
+      sky2.add(this.params.sky2, 'aerialStrength', 0.0, 1.0, 0.01),
+      'Strength of near-ground warm fog/aerial perspective.'
+    );
+    setTooltip(
+      sky2.add(this.params.sky2, 'aerialDistance', 20000, 200000, 1000),
+      'Distance scale before aerial fog reaches full strength.'
+    );
+    setTooltip(
+      sky2.add(this.params.sky2, 'skySunIntensity', 0.0, 60.0, 0.5),
+      'Sun intensity used by the fast sky approximation (halo/ambient).'
+    );
+    setTooltip(
+      sky2.add(this.params.sky2, 'exposure', 0.1, 2.0, 0.01),
+      'Overall exposure applied after tone mapping.'
+    );
 
     const sun = gui.addFolder('Sun');
     setTooltip(
@@ -116,18 +134,30 @@ export class App {
     );
 
     const place = gui.addFolder('Place');
-    place.add(this.params.place, 'latitude', -66, 66, 0.01).listen();
-    place.add(this.params.place, 'longitude', -180, 180, 0.01).listen();
-    place.add(this.params.time, 'utcOffset', -12, 14, 1).name('UTC offset').listen();
+    setTooltip(
+      place.add(this.params.place, 'latitude', -66, 66, 0.01).listen(),
+      'Latitude (deg) used to compute solar position.'
+    );
+    setTooltip(
+      place.add(this.params.place, 'longitude', -180, 180, 0.01).listen(),
+      'Longitude (deg) used to compute solar position.'
+    );
+    setTooltip(
+      place.add(this.params.time, 'utcOffset', -12, 14, 1).name('UTC offset').listen(),
+      'Local UTC offset applied to the date/time for sun calculation.'
+    );
 
     const time = gui.addFolder('Time');
-    time.add(this.params.time, 'year', 2000, 2035, 1).listen();
-    time.add(this.params.time, 'month', 1, 12, 1).listen();
-    time.add(this.params.time, 'day', 1, 31, 1).listen();
-    time.add(this.params.time, 'hour', 0, 23, 1).listen();
-    time.add(this.params.time, 'minute', 0, 59, 1).listen();
+    setTooltip(time.add(this.params.time, 'year', 2000, 2035, 1).listen(), 'Local year for solar ephemeris.');
+    setTooltip(time.add(this.params.time, 'month', 1, 12, 1).listen(), 'Local month for solar ephemeris.');
+    setTooltip(time.add(this.params.time, 'day', 1, 31, 1).listen(), 'Local day for solar ephemeris.');
+    setTooltip(time.add(this.params.time, 'hour', 0, 23, 1).listen(), 'Local hour for solar ephemeris.');
+    setTooltip(time.add(this.params.time, 'minute', 0, 59, 1).listen(), 'Local minute for solar ephemeris.');
 
-    gui.add(this.params.render, 'singleScatteringSteps', 8, 64, 1).name('skySteps');
+    setTooltip(
+      gui.add(this.params.render, 'singleScatteringSteps', 8, 64, 1).name('skySteps'),
+      'Primary sky ray-march steps (higher = smoother, slower).'
+    );
 
     const realFolder = gui.addFolder('Real-time');
     const rtToggle = realFolder.add(this.params.realtime, 'enabled').name('Use real-time');
@@ -135,27 +165,30 @@ export class App {
       if (v) this.realtime.start();
       else this.realtime.stop();
     });
+    setTooltip(rtToggle, 'Fetch live time/weather to drive sun and clouds.');
     const statusCtrl = realFolder.add(this.params.realtime, 'status').name('status').listen();
     const updateCtrl = realFolder.add(this.params.realtime, 'lastUpdate').name('lastUpdate').listen();
+    setTooltip(statusCtrl, 'Connection status for real-time mode.');
+    setTooltip(updateCtrl, 'Timestamp of the last successful update.');
     if ((statusCtrl as any).disable) (statusCtrl as any).disable();
     if ((updateCtrl as any).disable) (updateCtrl as any).disable();
 
     // Cloud GUI
     const cloud = gui.addFolder('Cloud (volumetric)');
-    cloud.add(this.params.cloud, 'enabled').name('enabled');
-    cloud.add(this.params.cloud, 'coverage', 0.0, 1.0, 0.01).listen();
-    cloud.add(this.params.cloud, 'height', 200, 4000, 10);
-    cloud.add(this.params.cloud, 'thickness', 200, 4000, 10);
-    cloud.add(this.params.cloud, 'sigmaT', 0.005, 2.0, 0.01);
-    cloud.add(this.params.cloud, 'phaseG', 0.0, 0.9, 0.01);
-    cloud.add(this.params.cloud, 'steps', 8, 256, 1);
-    cloud.add(this.params.cloud, 'maxDistance', 500, 20000, 100);
-    cloud.add(this.params.cloud, 'fadeStart', 0, 20000, 100);
-    cloud.add(this.params.cloud, 'fadeEnd', 0, 20000, 100);
-    cloud.add(this.params.cloud, 'windX', -160, 160, 0.5).listen();
-    cloud.add(this.params.cloud, 'windZ', -160, 160, 0.5).listen();
-    cloud.add(this.params.cloud, 'ambientK', 0.0, 0.5, 0.01);
-    cloud.add(this.params.cloud, 'opacity', 0.0, 4.0, 0.01);
+    setTooltip(cloud.add(this.params.cloud, 'enabled').name('enabled'), 'Toggle volumetric clouds on/off.');
+    setTooltip(cloud.add(this.params.cloud, 'coverage', 0.0, 1.0, 0.01).listen(), 'Fraction of sky covered by clouds (0 clear → 1 overcast).');
+    setTooltip(cloud.add(this.params.cloud, 'height', 200, 4000, 10), 'Cloud base height above ground (meters).');
+    setTooltip(cloud.add(this.params.cloud, 'thickness', 200, 4000, 10), 'Vertical thickness of the cloud layer (meters).');
+    setTooltip(cloud.add(this.params.cloud, 'sigmaT', 0.005, 2.0, 0.01), 'Extinction per meter; lower = more transparent, higher = denser.');
+    setTooltip(cloud.add(this.params.cloud, 'phaseG', 0.0, 0.9, 0.01), 'Scattering anisotropy; 0 isotropic, higher = more forward scattering.');
+    setTooltip(cloud.add(this.params.cloud, 'steps', 8, 256, 1), 'Cloud ray-march steps (quality vs performance).');
+    setTooltip(cloud.add(this.params.cloud, 'maxDistance', 500, 20000, 100), 'Maximum cloud march length per view ray (meters).');
+    setTooltip(cloud.add(this.params.cloud, 'fadeStart', 0, 20000, 100), 'Distance where clouds start fading out toward horizon.');
+    setTooltip(cloud.add(this.params.cloud, 'fadeEnd', 0, 20000, 100), 'Distance where the fade to zero completes.');
+    setTooltip(cloud.add(this.params.cloud, 'windX', -160, 160, 0.5).listen(), 'Wind speed along +X (m/s) advecting the noise.');
+    setTooltip(cloud.add(this.params.cloud, 'windZ', -160, 160, 0.5).listen(), 'Wind speed along +Z (m/s) advecting the noise.');
+    setTooltip(cloud.add(this.params.cloud, 'ambientK', 0.0, 0.5, 0.01), 'Ambient skylight added to clouds (prevents dark backsides).');
+    setTooltip(cloud.add(this.params.cloud, 'opacity', 0.0, 4.0, 0.01), 'Final opacity multiplier applied after marching.');
 
     // Transmittance LUT
     this.trans = new TransmittancePass(this.renderer, this.params.atmosphere);
