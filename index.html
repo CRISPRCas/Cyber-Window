@@ -18,14 +18,38 @@
         font:12px/1.2 monospace;
       }
       .hud button:hover { background:#1a1a1a; }
+
+      /* Immersive mode hides UI chrome */
+      body.immersive .hud,
+      body.immersive .fps,
+      body.immersive .lil-gui { display:none !important; }
+
+      .immersive-hint {
+        position:fixed;
+        top:12px;
+        right:12px;
+        padding:10px 12px;
+        background:rgba(0,0,0,0.65);
+        color:#ddd;
+        font:12px/1.4 monospace;
+        border:1px solid #333;
+        border-radius:6px;
+        z-index:11;
+        display:none;
+      }
+      body.immersive .immersive-hint { display:block; }
     </style>
   </head>
   <body>
     <div id="app"></div>
     <div class="hud">
       <button id="snap-sun">Snap to Sun</button>
+      <button id="immersive-toggle">Enter Immersive</button>
     </div>
     <div class="fps" id="fps"></div>
+    <div class="immersive-hint" id="immersive-hint">
+      Immersive mode: press Esc to exit.
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
