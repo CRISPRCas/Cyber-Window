@@ -216,8 +216,10 @@ void main(){
     float hz = texture2D(uPerlinTex, p + vec2(0.08, 0.16) + vec2(0.02, -0.05)*tWave + dv).r;
     vec2 grad = vec2(hx - h0, hz - h0);
 
-    // Add light hash wobble to break temporal repetition
-    grad += (vec2(hash12(p * 4.7 + tWave), hash12(p * 3.9 - tWave)) - 0.5) * 0.12;
+    // Smooth the ripple normal (remove per-pixel hash that caused grain)
+    float hx2 = texture2D(uPerlinTex, p + vec2(0.25, -0.18) + vec2(0.03, -0.01)*tWave).r;
+    float hz2 = texture2D(uPerlinTex, p + vec2(-0.22, 0.14) + vec2(-0.02, 0.04)*tWave).r;
+    grad = mix(grad, vec2(hx2 - h0, hz2 - h0), 0.35);
 
     // Distance-based fade (avoid patterned far field)
     float horizDist = length(pg.xz);
@@ -231,14 +233,22 @@ void main(){
     vec3 t, b; orthoBasis(baseRef, t, b);
     float rough = uGroundRoughness;
     vec2 nUv = vUv * uGroundNoiseScale;
-    float n1 = texture2D(uPerlinTex, nUv).r - 0.5;
-    float n2 = texture2D(uPerlinTex, nUv + vec2(11.7, 5.3)).r - 0.5;
-    float h1 = hash12(vUv * 123.4) - 0.5;
-    float h2 = hash12(vUv * 456.7) - 0.5;
-    float j1 = mix(n1, h1, 0.25);
-    float j2 = mix(n2, h2, 0.25);
-    vec3 jitter = normalize(baseRef + t * (j1*rough) + b * (j2*rough));
-    rd = normalize(mix(baseRef, jitter, 0.9));
+    // Spatially filtered jitter: 4-tap average, no per-pixel hash
+    float n1a = texture2D(uPerlinTex, nUv).r;
+    float n1b = texture2D(uPerlinTex, nUv + vec2(3.1, -2.7)).r;
+    float n1c = texture2D(uPerlinTex, nUv + vec2(-2.4, 2.9)).r;
+    float n1d = texture2D(uPerlinTex, nUv + vec2(5.0, 4.4)).r;
+    float n2a = texture2D(uPerlinTex, nUv + vec2(11.7, 5.3)).r;
+    float n2b = texture2D(uPerlinTex, nUv + vec2(-6.2, 4.9)).r;
+    float n2c = texture2D(uPerlinTex, nUv + vec2(8.8, -7.2)).r;
+    float n2d = texture2D(uPerlinTex, nUv + vec2(-9.1, -4.6)).r;
+    float j1 = 0.25 * (n1a + n1b + n1c + n1d) - 0.5;
+    float j2 = 0.25 * (n2a + n2b + n2c + n2d) - 0.5;
+
+    // Average-filter the jitter to smooth rough reflections
+    float jitterScale = rough * (0.35 + 0.65 * rough); // suppress shimmer at low roughness
+    vec3 jitterDir = normalize(baseRef + t * (j1 * jitterScale) + b * (j2 * jitterScale));
+    rd = normalize(mix(baseRef, jitterDir, 0.72));
 
     ro = pg + ng*1.0; // lift off ground
     up = normalize(ro);
