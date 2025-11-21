@@ -1,7 +1,8 @@
 import { Params } from '../ui/Params';
 
+const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
-const FETCH_INTERVAL_MS = HOUR_MS;
+const FETCH_INTERVAL_MS = MINUTE_MS;
 
 type Status = 'manual' | 'locating' | 'fetching-weather' | 'ok' | 'error';
 
