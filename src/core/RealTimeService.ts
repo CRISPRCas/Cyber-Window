@@ -84,7 +84,11 @@ export class RealTimeService {
 
       const cloudPercent = this.readCloudCover(data);
       if (cloudPercent !== null) {
-        this.params.cloud.coverage = Math.min(1, Math.max(0, cloudPercent / 100));
+        const clampedPercent = Math.min(100, Math.max(0, cloudPercent));
+        const minCover = 0.15;
+        const maxCover = 0.55;
+        const span = maxCover - minCover;
+        this.params.cloud.coverage = minCover + (clampedPercent / 100) * span;
       }
 
       const wind = data?.current_weather;
@@ -123,32 +127,28 @@ export class RealTimeService {
     const cover: number[] = hourly.cloud_cover;
     if (!Array.isArray(times) || !Array.isArray(cover) || cover.length === 0) return null;
 
-    const firstTime = times[0];
-    const [datePart, timePart] = typeof firstTime === 'string' ? firstTime.split('T') : [];
-    if (!datePart || !timePart) return null;
+    const currentTimeStr =
+      typeof data?.current_weather?.time === 'string' ? data.current_weather.time : null;
 
-    const [yearStr, monthStr, dayStr] = datePart.split('-');
-    const [hourStr, minuteStr] = timePart.split(':');
-    const year = Number(yearStr);
-    const month = Number(monthStr);
-    const day = Number(dayStr);
-    const hour = Number(hourStr);
-    const minute = Number(minuteStr);
-    if (
-      [year, month, day, hour, minute].some(v => Number.isNaN(v)) ||
-      month < 1 ||
-      month > 12 ||
-      day < 1 ||
-      day > 31
-    )
-      return null;
+    let idx =
+      currentTimeStr && Array.isArray(times) ? times.findIndex(t => t === currentTimeStr) : -1;
 
-    // Hourly timestamps are in the API's local timezone; use utc_offset_seconds to align.
-    const firstLocalMs = Date.UTC(year, month - 1, day, hour, minute);
-    const nowLocalMs = Date.now() + offsetSeconds * 1000;
-    const hourIndex = Math.round((nowLocalMs - firstLocalMs) / HOUR_MS);
-    const idx = Math.max(0, Math.min(cover.length - 1, hourIndex));
+    if (idx === -1 && typeof times[0] === 'string') {
+      const firstUtc = this.toUtcMs(times[0], offsetSeconds);
+      if (firstUtc !== null) {
+        const nowUtc = Date.now();
+        const hourIndex = Math.floor((nowUtc - firstUtc) / HOUR_MS);
+        idx = Math.max(0, Math.min(cover.length - 1, hourIndex));
+      }
+    }
 
+    if (idx < 0 || idx >= cover.length) return null;
     return typeof cover[idx] === 'number' ? cover[idx] : null;
+  }
+
+  private toUtcMs(timeStr: string, offsetSeconds: number): number | null {
+    const parsed = Date.parse(`${timeStr}Z`);
+    if (Number.isNaN(parsed)) return null;
+    return parsed - offsetSeconds * 1000;
   }
 }
