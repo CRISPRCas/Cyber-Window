@@ -21,9 +21,9 @@ export class DrawSkyPass {
     // Cloud params fallback when not provided
     const pCloud = (params as any).cloud ?? ((params as any).cloud = {
       coverage: 0.45, height: 1500, thickness: 1200,
-      sigmaT: 0.85, phaseG: 0.6, steps: 48, maxDistance: 12000,
+      sigmaT: 0.008, phaseG: 0.6, steps: 48, maxDistance: 12000,
       fadeStart: 8000, fadeEnd: 12000,
-      windX: 6.0, windZ: 3.0, ambientK: 0.06, opacity: 1.0, enabled: true
+      windX: 6.0, windZ: 3.0, ambientK: 0.06, opacity: 2.4, enabled: true
     });
 
     this.mat = new THREE.ShaderMaterial({

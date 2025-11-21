@@ -45,7 +45,7 @@ export function createParams() {
       coverage:   0.36,     // coverage 0..1
       height:     640.0,    // cloud base height (m)
       thickness:  1100.0,   // cloud thickness (m)
-      sigmaT:     0.2,      // extinction coefficient
+      sigmaT:     0.005,    // extinction coefficient (per-meter)
       phaseG:     0.6,      // Henyey–Greenstein anisotropy
       steps:      96,       // ray-march steps
       maxDistance:2000.0,   // max march distance per ray (m)
@@ -54,7 +54,7 @@ export function createParams() {
       windX:      40.0,     // wind X (XZ plane)
       windZ:      40.0,
       ambientK:   0.03,     // ambient fill light
-      opacity:    1.8,      // overall cloud opacity multiplier
+      opacity:    3.0,      // overall cloud opacity multiplier
       enabled:    true      // enable/disable clouds
     },
     realtime: {

@@ -146,16 +146,16 @@ export class App {
     cloud.add(this.params.cloud, 'coverage', 0.0, 1.0, 0.01).listen();
     cloud.add(this.params.cloud, 'height', 200, 4000, 10);
     cloud.add(this.params.cloud, 'thickness', 200, 4000, 10);
-    cloud.add(this.params.cloud, 'sigmaT', 0.1, 2.0, 0.01);
+    cloud.add(this.params.cloud, 'sigmaT', 0.005, 2.0, 0.01);
     cloud.add(this.params.cloud, 'phaseG', 0.0, 0.9, 0.01);
-    cloud.add(this.params.cloud, 'steps', 8, 128, 1);
+    cloud.add(this.params.cloud, 'steps', 8, 256, 1);
     cloud.add(this.params.cloud, 'maxDistance', 500, 20000, 100);
     cloud.add(this.params.cloud, 'fadeStart', 0, 20000, 100);
     cloud.add(this.params.cloud, 'fadeEnd', 0, 20000, 100);
     cloud.add(this.params.cloud, 'windX', -160, 160, 0.5).listen();
     cloud.add(this.params.cloud, 'windZ', -160, 160, 0.5).listen();
     cloud.add(this.params.cloud, 'ambientK', 0.0, 0.5, 0.01);
-    cloud.add(this.params.cloud, 'opacity', 0.0, 2.0, 0.01);
+    cloud.add(this.params.cloud, 'opacity', 0.0, 4.0, 0.01);
 
     // Transmittance LUT
     this.trans = new TransmittancePass(this.renderer, this.params.atmosphere);
