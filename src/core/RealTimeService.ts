@@ -120,7 +120,7 @@ export class RealTimeService {
         const dirDeg = typeof wind.winddirection === 'number' ? wind.winddirection : 0;
         const dirRad = (dirDeg * Math.PI) / 180;
         const kmhToShader = 0.6; // empirical scaling into shader wind units
-        const apiWindBoost = 10.0; // requested boost to make clouds advect faster
+        const apiWindBoost = 5.0; // requested boost to make clouds advect faster
         const v = speed * kmhToShader * apiWindBoost;
         this.params.cloud.windX = -Math.sin(dirRad) * v;
         this.params.cloud.windZ = -Math.cos(dirRad) * v;
