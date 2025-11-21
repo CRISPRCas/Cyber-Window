@@ -1,6 +1,7 @@
 import { Params } from '../ui/Params';
 
 const MINUTE_MS = 60_000;
+const HOUR_MS = 3_600_000;
 
 type Status = 'manual' | 'locating' | 'fetching-weather' | 'ok' | 'error';
 
@@ -98,6 +99,13 @@ export class RealTimeService {
         this.params.cloud.windZ = -Math.cos(dirRad) * v;
       }
 
+      // Log the latest weather snapshot used to drive the scene.
+      console.log('Weather API data', {
+        url,
+        cloudCoverPercent: cloudPercent,
+        currentWeather: wind,
+      });
+
       this.params.realtime.lastUpdate = now.toLocaleTimeString();
       this.setStatus('ok');
     } catch (err: any) {
@@ -107,13 +115,40 @@ export class RealTimeService {
 
   private readCloudCover(data: any): number | null {
     const hourly = data?.hourly;
-    if (!hourly?.cloud_cover || !hourly?.time) return null;
+    const offsetSeconds =
+      typeof data?.utc_offset_seconds === 'number' ? data.utc_offset_seconds : null;
+    if (!hourly?.cloud_cover || !hourly?.time || offsetSeconds === null) return null;
 
     const times: string[] = hourly.time;
     const cover: number[] = hourly.cloud_cover;
     if (!Array.isArray(times) || !Array.isArray(cover) || cover.length === 0) return null;
 
-    // Use the first sample (API returns current hour first when current_weather=true)
-    return typeof cover[0] === 'number' ? cover[0] : null;
+    const firstTime = times[0];
+    const [datePart, timePart] = typeof firstTime === 'string' ? firstTime.split('T') : [];
+    if (!datePart || !timePart) return null;
+
+    const [yearStr, monthStr, dayStr] = datePart.split('-');
+    const [hourStr, minuteStr] = timePart.split(':');
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const day = Number(dayStr);
+    const hour = Number(hourStr);
+    const minute = Number(minuteStr);
+    if (
+      [year, month, day, hour, minute].some(v => Number.isNaN(v)) ||
+      month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > 31
+    )
+      return null;
+
+    // Hourly timestamps are in the API's local timezone; use utc_offset_seconds to align.
+    const firstLocalMs = Date.UTC(year, month - 1, day, hour, minute);
+    const nowLocalMs = Date.now() + offsetSeconds * 1000;
+    const hourIndex = Math.round((nowLocalMs - firstLocalMs) / HOUR_MS);
+    const idx = Math.max(0, Math.min(cover.length - 1, hourIndex));
+
+    return typeof cover[idx] === 'number' ? cover[idx] : null;
   }
 }
