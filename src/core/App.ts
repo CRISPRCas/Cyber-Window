@@ -197,6 +197,16 @@ export class App {
     // Sky draw pass
     this.drawSky = new DrawSkyPass(this.renderer, this.camera, this.trans.texture, this.params);
 
+    // Randomize cloud phase per load so the pattern changes on each refresh
+    const cloudSeed = new THREE.Vector3(
+      Math.random() * 1000.0,
+      Math.random() * 1000.0,
+      Math.random() * 1000.0
+    );
+    this.drawSky.setCloudSeed(cloudSeed);
+    this._cloudTime = Math.random() * 10000.0;
+    this.drawSky.setCloudTime(this._cloudTime);
+
     // Perlin noise texture
     {
       const loader = new THREE.TextureLoader();

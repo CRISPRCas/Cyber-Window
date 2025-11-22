@@ -73,6 +73,7 @@ export class DrawSkyPass {
         uCloudFadeStart:  { value: pCloud.fadeStart },
         uCloudFadeEnd:    { value: pCloud.fadeEnd },
         uCloudWind:       { value: new THREE.Vector2(pCloud.windX, pCloud.windZ) },
+        uCloudSeed:       { value: new THREE.Vector3() },
         uCloudTime:       { value: 0.0 },
         uCloudAmbientK:   { value: pCloud.ambientK },
         uCloudOpacity:    { value: pCloud.opacity },
@@ -236,6 +237,7 @@ export class DrawSkyPass {
   }
 
   setPerlinTexture(tex: THREE.Texture) { this.mat.uniforms.uPerlinTex.value = tex; }
+  setCloudSeed(seed: THREE.Vector3) { this.mat.uniforms.uCloudSeed.value.copy(seed); }
   setCloudTime(t: number) { this.mat.uniforms.uCloudTime.value = t; }
 
   setSize(w: number, h: number) {

@@ -35,6 +35,7 @@ uniform float uCloudMaxDistance;
 uniform float uCloudFadeStart;
 uniform float uCloudFadeEnd;
 uniform vec2  uCloudWind;
+uniform vec3  uCloudSeed;
 uniform float uCloudTime;
 uniform float uCloudAmbientK;
 uniform float uCloudOpacity;
@@ -166,8 +167,8 @@ float fbm(vec3 p) {
 
 // Cloud density on spherical shell
 float cloud_density(vec3 worldPos, vec3 offset, float h) {
-    // Shape coordinates (low frequency scale + wind offset)
-    vec3 p = worldPos * 0.0212242 + offset;
+    // Shape coordinates (low frequency scale + wind offset + per-load seed)
+    vec3 p = worldPos * 0.0212242 + offset + uCloudSeed;
 
     float dens = fbm(p);
 
