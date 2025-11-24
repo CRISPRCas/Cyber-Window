@@ -158,6 +158,10 @@ export class App {
       gui.add(this.params.render, 'singleScatteringSteps', 8, 64, 1).name('skySteps'),
       'Primary sky ray-march steps (higher = smoother, slower).'
     );
+    setTooltip(
+      gui.add(this.params.render, 'targetFPS', 24, 120, 1).name('targetFPS').listen(),
+      'Desired frame rate for the adaptive quality tuner; lower favors visuals, higher favors speed.'
+    );
 
     const realFolder = gui.addFolder('Real-time');
     const rtToggle = realFolder.add(this.params.realtime, 'enabled').name('Use real-time');

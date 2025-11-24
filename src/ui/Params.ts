@@ -17,7 +17,8 @@ export function createParams() {
       utcOffset: 8
     },
     render: {
-      singleScatteringSteps: 20
+      singleScatteringSteps: 20,
+      targetFPS: 55
     },
     sun: {
       angularDiameterDeg: 0.53,

@@ -20,7 +20,6 @@ export class PerfTuner {
   private params: Params;
   private container: HTMLElement;
 
-  private readonly targetFPS = 55;
   private readonly minPixelRatio = 0.65;
   private readonly maxPixelRatio: number;
   private readonly minCloudSteps = 24;
@@ -54,8 +53,9 @@ export class PerfTuner {
     this.timeAcc = 0;
     if (this.cooldown > 0) return;
 
-    const lowThresh = this.targetFPS * 0.75;
-    const highThresh = this.targetFPS * 1.15;
+    const targetFPS = this.getTargetFPS();
+    const lowThresh = targetFPS * 0.75;
+    const highThresh = targetFPS * 1.15;
 
     if (fps < lowThresh) {
       if (this.dropQuality()) this.cooldown = 1.2;
@@ -116,5 +116,9 @@ export class PerfTuner {
     const h = this.container.clientHeight;
     this.renderer.setSize(w, h, false);
     this.drawSky.setSize(w, h);
+  }
+
+  private getTargetFPS() {
+    return Math.max(1, this.params.render.targetFPS);
   }
 }
