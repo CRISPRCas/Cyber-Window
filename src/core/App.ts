@@ -173,8 +173,10 @@ export class App {
       skyStepCtrl,
       'Primary sky ray-march steps (higher = smoother, slower).'
     );
+    const targetFpsCtrl = gui.add(this.params.render, 'targetFPS', 24, 120, 1).name('targetFPS').listen();
+    this.bindControl('render.targetFPS', targetFpsCtrl);
     setTooltip(
-      gui.add(this.params.render, 'targetFPS', 24, 120, 1).name('targetFPS').listen(),
+      targetFpsCtrl,
       'Desired frame rate for the adaptive quality tuner; lower favors visuals, higher favors speed.'
     );
 

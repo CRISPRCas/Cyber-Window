@@ -97,20 +97,15 @@ export class PresentationFlow {
     const steps: Step[] = [
       {
         duration: 10,
-        subtitle: { line1: 'Initialization', line2: 'Booting Engine...' },
+        subtitle: { line1: 'Initialization', line2: 'Adjusting target FPS: 20 → 60' },
         onStart: () => {
           this.app.setRealtimeEnabled(false);
-          this.setFade(1);
-          this.app.setParamValue('render.singleScatteringSteps', 8, { fireOnChange: false, flash: true, label: 'skySteps: 8 → 20' });
+          this.setFade(0);
+          this.app.setParamValue('render.targetFPS', 20, { fireOnChange: true, flash: true, label: 'targetFPS: 20 → 60' });
         },
         onUpdate: t => {
           const eased = easeInOut(t);
-          this.setFade(1 - eased);
-          this.app.setParamValue('render.singleScatteringSteps', lerp(8, 20, eased), { fireOnChange: false });
-        },
-        onComplete: () => {
-          this.setFade(0);
-          this.app.setParamValue('render.singleScatteringSteps', 20, { fireOnChange: false });
+          this.app.setParamValue('render.targetFPS', lerp(20, 60, eased), { fireOnChange: true });
         }
       },
       {
@@ -130,7 +125,8 @@ export class PresentationFlow {
         subtitle: { line1: 'Procedural Surface', line2: 'Time: 07:20 → 10:00' },
         onStart: () => {
           this.camStart = this.app.getCameraSpherical();
-          this.camTarget = { ...this.camStart!, phi: THREE.MathUtils.degToRad(135), radius: this.camStart!.radius };
+          const downPhi = THREE.MathUtils.degToRad(120);
+          this.camTarget = { ...this.camStart!, phi: downPhi, radius: this.camStart!.radius };
           this.camEase = easeInOut;
         },
         onUpdate: t => {
@@ -146,7 +142,8 @@ export class PresentationFlow {
           this.app.setTimeMinutes(toMin('12:00'));
           const pose = this.app.getCameraSpherical();
           this.camStart = pose;
-          this.camTarget = { ...pose, phi: THREE.MathUtils.degToRad(40), radius: pose.radius };
+          const upPhi = THREE.MathUtils.degToRad(55);
+          this.camTarget = { ...pose, phi: upPhi, radius: pose.radius };
           this.camEase = easeInOut;
         },
         onUpdate: t => {
@@ -170,13 +167,13 @@ export class PresentationFlow {
       },
       {
         duration: 10,
-        subtitle: { line1: 'Cloud Erosion', line2: 'Coverage: 36% → 80% → 36%' },
+        subtitle: { line1: 'Cloud Erosion', line2: 'Coverage: 36% → 50% → 36%' },
         onStart: () => {
-          this.app.notifyParam('cloud.coverage', 'Coverage 0.36 → 0.80 → 0.36');
+          this.app.notifyParam('cloud.coverage', 'Coverage 0.36 → 0.50 → 0.36');
         },
         onUpdate: t => {
           const wave = easeInOut(twoPhase(t));
-          const coverage = lerp(0.36, 0.8, wave);
+          const coverage = lerp(0.36, 0.5, wave);
           this.app.setParamValue('cloud.coverage', coverage, { fireOnChange: false });
         }
       },
@@ -186,7 +183,7 @@ export class PresentationFlow {
         onStart: () => {
           this.camStart = this.app.getCameraSpherical();
           this.camTarget = {
-            theta: this.camStart.theta + Math.PI * 0.5,
+            theta: this.camStart.theta + Math.PI * 0.25,
             phi: THREE.MathUtils.degToRad(95),
             radius: this.camStart.radius * 1.05
           };
@@ -202,15 +199,31 @@ export class PresentationFlow {
       },
       {
         duration: 10,
-        subtitle: { line1: 'Phase Function (Lighting)', line2: 'Anisotropy: 0.6 → 0.95 → 0.6' },
+        subtitle: { line1: 'Atmospheric Haze', line2: 'Mie Scale: 3.2 → 5.0 → 3.2' },
         onStart: () => {
-          this.app.notifyParam('cloud.phaseG', 'Phase g 0.6 → 0.95 → 0.6');
+          this.app.notifyParam('atmosphere.mieScale', 'Mie 3.2 → 5.0 → 3.2');
         },
         onUpdate: t => {
           const wave = easeInOut(twoPhase(t));
-          const g = lerp(0.6, 0.95, wave);
-          this.app.setParamValue('cloud.phaseG', g, { fireOnChange: false });
+          const mie = lerp(3.2, 5.0, wave);
+          this.app.setParamValue('atmosphere.mieScale', mie, { fireOnChange: false });
           followSun(3.0, 0.4);
+        }
+      },
+      {
+        duration: 10,
+        subtitle: { line1: 'Wind Simulation', line2: 'Wind Speed: 150 km/h' },
+        onStart: () => {
+          this.app.notifyParam('cloud.windX', 'WindX 40 → 150 → 40');
+          this.camStart = this.app.getCameraSpherical();
+          this.camTarget = { ...this.camStart, theta: this.camStart.theta + Math.PI * 0.2, phi: THREE.MathUtils.degToRad(75) };
+          this.camEase = easeInOut;
+        },
+        onUpdate: t => {
+          const wave = easeInOut(twoPhase(t));
+          const wind = lerp(40, 150, wave);
+          this.app.setParamValue('cloud.windX', wind, { fireOnChange: false });
+          this.updateCameraLerp(easeInOut(t));
         }
       },
       {
@@ -221,22 +234,6 @@ export class PresentationFlow {
         },
         onUpdate: () => {
           this.setNotice('Syncing with live API…');
-        }
-      },
-      {
-        duration: 10,
-        subtitle: { line1: 'Wind Simulation', line2: 'Wind Speed: 150 km/h' },
-        onStart: () => {
-          this.app.notifyParam('cloud.windX', 'WindX 40 → 150 → 40');
-          this.camStart = this.app.getCameraSpherical();
-          this.camTarget = { ...this.camStart, phi: THREE.MathUtils.degToRad(70) };
-          this.camEase = easeInOut;
-        },
-        onUpdate: t => {
-          const wave = easeInOut(twoPhase(t));
-          const wind = lerp(40, 150, wave);
-          this.app.setParamValue('cloud.windX', wind, { fireOnChange: false });
-          this.updateCameraLerp(easeInOut(t));
         }
       },
       {
@@ -276,7 +273,7 @@ export class PresentationFlow {
       },
       {
         duration: 5,
-        subtitle: { line1: 'Cyber Window', line2: 'Project by Yangfan WU' }
+        subtitle: { line1: 'Cyber Window', line2: 'Project by Yangfan WU — Group 22' }
       }
     ];
 
