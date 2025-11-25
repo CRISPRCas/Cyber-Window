@@ -13,10 +13,16 @@ export class App {
   private renderer: THREE.WebGLRenderer;
   private camera: THREE.PerspectiveCamera;
   private params: Params;
+  private gui: GUI;
+  private guiBindings = new Map<string, any>();
+  private guiFlashTimers = new Map<string, number>();
+  private paramNoticeHandler?: (msg: string) => void;
   private controls: OrbitControls;
   private perf: PerfTuner;
   private realtime: RealTimeService;
   private sunDir = new THREE.Vector3();
+  private lutDirty = false;
+  private lutTimer = 0;
 
   private trans: TransmittancePass;
   private drawSky: DrawSkyPass;
@@ -63,11 +69,14 @@ export class App {
     this.realtime = new RealTimeService(this.params);
 
     const gui = new GUI();
+    this.gui = gui;
 
     const sky = gui.addFolder('Sky');
     const rayleighCtrl = sky.add(this.params.atmosphere, 'rayleighScale', 0.1, 5.0, 0.01).name('rayleighScale').onChange(()=>this.refreshLUT());
+    this.bindControl('atmosphere.rayleighScale', rayleighCtrl);
     setTooltip(rayleighCtrl, 'Rayleigh scattering scale; higher = bluer/brighter sky.');
     const mieCtrl = sky.add(this.params.atmosphere, 'mieScale', 0.1, 5.0, 0.01).name('mieScale').onChange(()=>this.refreshLUT());
+    this.bindControl('atmosphere.mieScale', mieCtrl);
     setTooltip(mieCtrl, 'Mie haze density; increases low-angle glow and overall haze.');
     const albedoCtrl = sky.add(this.params.atmosphere, 'groundAlbedo', 0.0, 1.0, 0.01).name('groundAlbedo');
     setTooltip(albedoCtrl, 'Ground reflectance feeding indirect sky light.');
@@ -151,11 +160,17 @@ export class App {
     setTooltip(time.add(this.params.time, 'year', 2000, 2035, 1).listen(), 'Local year for solar ephemeris.');
     setTooltip(time.add(this.params.time, 'month', 1, 12, 1).listen(), 'Local month for solar ephemeris.');
     setTooltip(time.add(this.params.time, 'day', 1, 31, 1).listen(), 'Local day for solar ephemeris.');
-    setTooltip(time.add(this.params.time, 'hour', 0, 23, 1).listen(), 'Local hour for solar ephemeris.');
-    setTooltip(time.add(this.params.time, 'minute', 0, 59, 1).listen(), 'Local minute for solar ephemeris.');
+    const hourCtrl = time.add(this.params.time, 'hour', 0, 23, 1).listen();
+    const minuteCtrl = time.add(this.params.time, 'minute', 0, 59, 1).listen();
+    this.bindControl('time.hour', hourCtrl);
+    this.bindControl('time.minute', minuteCtrl);
+    setTooltip(hourCtrl, 'Local hour for solar ephemeris.');
+    setTooltip(minuteCtrl, 'Local minute for solar ephemeris.');
 
+    const skyStepCtrl = gui.add(this.params.render, 'singleScatteringSteps', 8, 64, 1).name('skySteps');
+    this.bindControl('render.singleScatteringSteps', skyStepCtrl);
     setTooltip(
-      gui.add(this.params.render, 'singleScatteringSteps', 8, 64, 1).name('skySteps'),
+      skyStepCtrl,
       'Primary sky ray-march steps (higher = smoother, slower).'
     );
     setTooltip(
@@ -165,6 +180,7 @@ export class App {
 
     const realFolder = gui.addFolder('Real-time');
     const rtToggle = realFolder.add(this.params.realtime, 'enabled').name('Use real-time');
+    this.bindControl('realtime.enabled', rtToggle);
     rtToggle.onChange((v: boolean) => {
       if (v) this.realtime.start();
       else this.realtime.stop();
@@ -180,16 +196,24 @@ export class App {
     // Cloud GUI
     const cloud = gui.addFolder('Cloud (volumetric)');
     setTooltip(cloud.add(this.params.cloud, 'enabled').name('enabled'), 'Toggle volumetric clouds on/off.');
-    setTooltip(cloud.add(this.params.cloud, 'coverage', 0.0, 1.0, 0.01).listen(), 'Fraction of sky covered by clouds (0 clear → 1 overcast).');
-    setTooltip(cloud.add(this.params.cloud, 'height', 200, 4000, 10), 'Cloud base height above ground (meters).');
+    const cloudCoverageCtrl = cloud.add(this.params.cloud, 'coverage', 0.0, 1.0, 0.01).listen();
+    this.bindControl('cloud.coverage', cloudCoverageCtrl);
+    setTooltip(cloudCoverageCtrl, 'Fraction of sky covered by clouds (0 clear → 1 overcast).');
+    const cloudHeightCtrl = cloud.add(this.params.cloud, 'height', 200, 4000, 10);
+    this.bindControl('cloud.height', cloudHeightCtrl);
+    setTooltip(cloudHeightCtrl, 'Cloud base height above ground (meters).');
     setTooltip(cloud.add(this.params.cloud, 'thickness', 200, 4000, 10), 'Vertical thickness of the cloud layer (meters).');
     setTooltip(cloud.add(this.params.cloud, 'sigmaT', 0.005, 2.0, 0.01), 'Extinction per meter; lower = more transparent, higher = denser.');
-    setTooltip(cloud.add(this.params.cloud, 'phaseG', 0.0, 0.9, 0.01), 'Scattering anisotropy; 0 isotropic, higher = more forward scattering.');
+    const phaseCtrl = cloud.add(this.params.cloud, 'phaseG', 0.0, 0.9, 0.01);
+    this.bindControl('cloud.phaseG', phaseCtrl);
+    setTooltip(phaseCtrl, 'Scattering anisotropy; 0 isotropic, higher = more forward scattering.');
     setTooltip(cloud.add(this.params.cloud, 'steps', 8, 256, 1), 'Cloud ray-march steps (quality vs performance).');
     setTooltip(cloud.add(this.params.cloud, 'maxDistance', 500, 20000, 100), 'Maximum cloud march length per view ray (meters).');
     setTooltip(cloud.add(this.params.cloud, 'fadeStart', 0, 20000, 100), 'Distance where clouds start fading out toward horizon.');
     setTooltip(cloud.add(this.params.cloud, 'fadeEnd', 0, 20000, 100), 'Distance where the fade to zero completes.');
-    setTooltip(cloud.add(this.params.cloud, 'windX', -160, 160, 0.5).listen(), 'Wind speed along +X (m/s) advecting the noise.');
+    const windXCtrl = cloud.add(this.params.cloud, 'windX', -160, 160, 0.5).listen();
+    this.bindControl('cloud.windX', windXCtrl);
+    setTooltip(windXCtrl, 'Wind speed along +X (m/s) advecting the noise.');
     setTooltip(cloud.add(this.params.cloud, 'windZ', -160, 160, 0.5).listen(), 'Wind speed along +Z (m/s) advecting the noise.');
     setTooltip(cloud.add(this.params.cloud, 'ambientK', 0.0, 0.5, 0.01), 'Ambient skylight added to clouds (prevents dark backsides).');
     setTooltip(cloud.add(this.params.cloud, 'opacity', 0.0, 4.0, 0.01), 'Final opacity multiplier applied after marching.');
@@ -238,6 +262,105 @@ export class App {
     });
   }
 
+  setParamNoticeHandler(fn: (msg: string) => void) {
+    this.paramNoticeHandler = fn;
+  }
+
+  private bindControl(path: string, ctrl: any) {
+    this.guiBindings.set(path, ctrl);
+  }
+
+  private flashParam(path: string, message?: string) {
+    const ctrl = this.guiBindings.get(path);
+    const el = (ctrl?.domElement as HTMLElement | undefined) || null;
+    const target = (el?.closest('.controller') as HTMLElement | null) || el;
+    if (target) {
+      target.classList.add('flash-notice');
+      const existing = this.guiFlashTimers.get(path);
+      if (existing) window.clearTimeout(existing);
+      const timer = window.setTimeout(() => target.classList.remove('flash-notice'), 900);
+      this.guiFlashTimers.set(path, timer);
+    }
+    if (message && this.paramNoticeHandler) {
+      this.paramNoticeHandler(message);
+    }
+  }
+
+  private assignParam(path: string, value: any): boolean {
+    const parts = path.split('.');
+    let obj: any = this.params;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!obj) return false;
+      obj = obj[parts[i]];
+    }
+    const key = parts[parts.length - 1];
+    if (!obj || !(key in obj)) return false;
+    (obj as any)[key] = value;
+    return true;
+  }
+
+  private updateControllerDisplay(path: string) {
+    const ctrl = this.guiBindings.get(path);
+    if (ctrl?.updateDisplay) ctrl.updateDisplay();
+  }
+
+  setParamValue(
+    path: string,
+    value: any,
+    opts: { flash?: boolean; label?: string; fireOnChange?: boolean } = {}
+  ) {
+    const ctrl = this.guiBindings.get(path);
+    if (ctrl && opts.fireOnChange !== false && typeof ctrl.setValue === 'function') {
+      ctrl.setValue(value);
+    } else {
+      const ok = this.assignParam(path, value);
+      if (!ok) return;
+      this.updateControllerDisplay(path);
+      if (path.startsWith('atmosphere.')) this.refreshLUT();
+    }
+
+    if (opts.flash) {
+      const valStr = typeof value === 'number' ? value.toFixed(2).replace(/\.?0+$/, '') : String(value);
+      const msg = opts.label ?? `${path} → ${valStr}`;
+      this.flashParam(path, msg);
+    }
+  }
+
+  notifyParam(path: string, message: string) {
+    this.flashParam(path, message);
+  }
+
+  getParams() { return this.params; }
+
+  getSunDirection() { return this.sunDir.clone(); }
+
+  getCameraSpherical() {
+    const offset = this.camera.position.clone().sub(this.controls.target);
+    const sph = new THREE.Spherical().setFromVector3(offset);
+    return { theta: sph.theta, phi: sph.phi, radius: sph.radius };
+  }
+
+  setCameraSpherical(theta: number, phi: number, radius: number) {
+    const offset = new THREE.Vector3().setFromSpherical(new THREE.Spherical(radius, phi, theta));
+    this.camera.position.copy(this.controls.target).add(offset);
+    this.camera.lookAt(this.controls.target);
+    this.controls.update();
+  }
+
+  setTimeMinutes(totalMinutes: number) {
+    const wrapped = ((totalMinutes % 1440) + 1440) % 1440;
+    const hour = Math.floor(wrapped / 60);
+    const minute = Math.floor(wrapped % 60);
+    this.params.time.hour = hour;
+    this.params.time.minute = minute;
+    this.updateControllerDisplay('time.hour');
+    this.updateControllerDisplay('time.minute');
+  }
+
+  setRealtimeEnabled(on: boolean, opts: { flash?: boolean; label?: string } = {}) {
+    this.setParamValue('realtime.enabled', on, { fireOnChange: true, flash: opts.flash, label: opts.label });
+  }
+
   snapToSun() {
     if (this.sunDir.lengthSq() < 1e-6) return;
     const target = this.controls.target.clone();
@@ -250,11 +373,19 @@ export class App {
   }
 
   private refreshLUT() {
-    this.trans.updateAtmosphere(this.params.atmosphere);
-    this.trans.render();
+    this.lutDirty = true;
+    this.lutTimer = 0;
   }
 
   frame(dt: number) {
+    this.lutTimer += dt;
+    if (this.lutDirty && this.lutTimer > 0.12) {
+      this.trans.updateAtmosphere(this.params.atmosphere);
+      this.trans.render();
+      this.lutDirty = false;
+      this.lutTimer = 0;
+    }
+
     this.controls.update();
     this._cloudTime += dt;
     this.drawSky.setCloudTime(this._cloudTime);

@@ -1,4 +1,5 @@
 import { App } from './core/App';
+import { PresentationFlow } from './core/PresentationFlow';
 
 const app = new App(document.getElementById('app')!);
 
@@ -49,6 +50,43 @@ if (immersiveBtn) {
   immersiveBtn.addEventListener('click', () => setImmersive(!immersive));
 }
 
+const noticeEl = document.getElementById('param-notice');
+let noticeTimer: number | null = null;
+const showNotice = (msg: string) => {
+  if (!noticeEl) return;
+  noticeEl.textContent = msg;
+  noticeEl.classList.add('show');
+  if (noticeTimer !== null) window.clearTimeout(noticeTimer);
+  noticeTimer = window.setTimeout(() => {
+    noticeEl?.classList.remove('show');
+  }, 1700);
+};
+app.setParamNoticeHandler(showNotice);
+
+const subtitle1 = document.getElementById('subtitle-1');
+const subtitle2 = document.getElementById('subtitle-2');
+const subtitleBox = document.getElementById('subtitles');
+const fadeEl = document.getElementById('fade-overlay');
+const setSubtitle = (line1: string, line2: string) => {
+  if (subtitle1) subtitle1.textContent = line1;
+  if (subtitle2) subtitle2.textContent = line2;
+  if (subtitleBox) subtitleBox.classList.add('show');
+};
+const setFade = (opacity: number) => {
+  if (!fadeEl) return;
+  fadeEl.style.opacity = `${opacity}`;
+  fadeEl.style.pointerEvents = opacity > 0.01 ? 'auto' : 'none';
+};
+
+const flow = new PresentationFlow(app, {
+  setSubtitle,
+  setFade,
+  setNotice: showNotice,
+  setImmersive
+});
+const demoBtn = document.getElementById('run-demo');
+if (demoBtn) demoBtn.addEventListener('click', () => flow.start());
+
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && immersive) {
     setImmersive(false);
@@ -68,6 +106,7 @@ function loop() {
   const now = performance.now();
   const dt = (now - last) / 1000;
   last = now;
+  flow.update(dt);
   app.frame(dt);
 
   if (!snappedToSun) {
