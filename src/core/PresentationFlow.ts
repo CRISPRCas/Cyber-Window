@@ -125,8 +125,8 @@ export class PresentationFlow {
         subtitle: { line1: 'Procedural Surface', line2: 'Time: 07:20 → 10:00' },
         onStart: () => {
           this.camStart = this.app.getCameraSpherical();
-          const downPhi = THREE.MathUtils.degToRad(120);
-          this.camTarget = { ...this.camStart!, phi: downPhi, radius: this.camStart!.radius };
+          const upPhi = THREE.MathUtils.degToRad(55);
+          this.camTarget = { ...this.camStart!, phi: upPhi, radius: this.camStart!.radius };
           this.camEase = easeInOut;
         },
         onUpdate: t => {
@@ -142,8 +142,8 @@ export class PresentationFlow {
           this.app.setTimeMinutes(toMin('12:00'));
           const pose = this.app.getCameraSpherical();
           this.camStart = pose;
-          const upPhi = THREE.MathUtils.degToRad(55);
-          this.camTarget = { ...pose, phi: upPhi, radius: pose.radius };
+          const downPhi = THREE.MathUtils.degToRad(120);
+          this.camTarget = { ...pose, phi: downPhi, radius: pose.radius };
           this.camEase = easeInOut;
         },
         onUpdate: t => {
@@ -183,7 +183,7 @@ export class PresentationFlow {
         onStart: () => {
           this.camStart = this.app.getCameraSpherical();
           this.camTarget = {
-            theta: this.camStart.theta + Math.PI * 0.25,
+            theta: this.camStart.theta - Math.PI * 0.25,
             phi: THREE.MathUtils.degToRad(95),
             radius: this.camStart.radius * 1.05
           };
@@ -212,22 +212,6 @@ export class PresentationFlow {
       },
       {
         duration: 10,
-        subtitle: { line1: 'Wind Simulation', line2: 'Wind Speed: 150 km/h' },
-        onStart: () => {
-          this.app.notifyParam('cloud.windX', 'WindX 40 → 150 → 40');
-          this.camStart = this.app.getCameraSpherical();
-          this.camTarget = { ...this.camStart, theta: this.camStart.theta + Math.PI * 0.2, phi: THREE.MathUtils.degToRad(75) };
-          this.camEase = easeInOut;
-        },
-        onUpdate: t => {
-          const wave = easeInOut(twoPhase(t));
-          const wind = lerp(40, 150, wave);
-          this.app.setParamValue('cloud.windX', wind, { fireOnChange: false });
-          this.updateCameraLerp(easeInOut(t));
-        }
-      },
-      {
-        duration: 10,
         subtitle: { line1: 'API Synchronization', line2: 'Status: Connecting...' },
         onStart: () => {
           this.app.setRealtimeEnabled(true, { flash: true, label: 'Real-time: on (sync)' });
@@ -250,6 +234,8 @@ export class PresentationFlow {
           this.timeLerpStart = startMinutes;
           this.timeLerpEnd = targetMinutes;
           this.app.notifyParam('time.hour', 'Reset time → 17:30');
+          this.app.setParamValue('cloud.coverage', 0.36, { fireOnChange: false, flash: true, label: 'Coverage reset' });
+          this.app.setParamValue('cloud.windX', 40, { fireOnChange: false, flash: true, label: 'Wind reset' });
         },
         onUpdate: t => {
           const eased = easeInOut(t);
@@ -273,7 +259,11 @@ export class PresentationFlow {
       },
       {
         duration: 5,
-        subtitle: { line1: 'Cyber Window', line2: 'Project by Yangfan WU — Group 22' }
+        subtitle: { line1: 'Cyber Window', line2: 'Project by Yangfan WU — Group 22' },
+        onStart: () => {
+          this.setImmersive(true);
+          this.app.snapToSun();
+        }
       }
     ];
 
