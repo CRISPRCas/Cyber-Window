@@ -53,6 +53,7 @@ export class PresentationFlow {
     this.stepIndex = 0;
     this.stepTime = 0;
     this.active = true;
+    this.app.collapseUnchangedPanels();
     this.setSubtitle(this.steps[0].subtitle.line1, this.steps[0].subtitle.line2);
     this.steps[0].onStart?.();
   }

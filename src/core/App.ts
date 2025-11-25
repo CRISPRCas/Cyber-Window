@@ -15,6 +15,7 @@ export class App {
   private params: Params;
   private gui: GUI;
   private guiBindings = new Map<string, any>();
+  private guiFolders: Record<string, any> = {};
   private guiFlashTimers = new Map<string, number>();
   private paramNoticeHandler?: (msg: string) => void;
   private controls: OrbitControls;
@@ -72,6 +73,7 @@ export class App {
     this.gui = gui;
 
     const sky = gui.addFolder('Sky');
+    this.guiFolders.sky = sky;
     const rayleighCtrl = sky.add(this.params.atmosphere, 'rayleighScale', 0.1, 5.0, 0.01).name('rayleighScale').onChange(()=>this.refreshLUT());
     this.bindControl('atmosphere.rayleighScale', rayleighCtrl);
     setTooltip(rayleighCtrl, 'Rayleigh scattering scale; higher = bluer/brighter sky.');
@@ -82,6 +84,7 @@ export class App {
     setTooltip(albedoCtrl, 'Ground reflectance feeding indirect sky light.');
 
     const sky2 = gui.addFolder('Sky-2 (fast approx)');
+    this.guiFolders.sky2 = sky2;
     setTooltip(
       sky2.add(this.params.sky2, 'multiScatterBoost', 0.0, 1.0, 0.01),
       'Adds extra multi-scatter energy for a brighter dome (artistic).'
@@ -104,6 +107,7 @@ export class App {
     );
 
     const sun = gui.addFolder('Sun');
+    this.guiFolders.sun = sun;
     setTooltip(
       sun.add(this.params.sun, 'angularDiameterDeg', 0.3, 0.7, 0.01),
       'Apparent size of the sun disk in degrees.'
@@ -121,6 +125,7 @@ export class App {
       'How quickly the halo fades away from the sun.'
     );
     const ground = gui.addFolder('Ground');
+    this.guiFolders.ground = ground;
     setTooltip(
       ground.add(this.params.ground, 'mirrorRoughness', 0.0, 0.2, 0.005).name('mirrorBlur'),
       'Amount of blur on the mirror reflection (0 = sharp, higher = blurrier).'
@@ -143,6 +148,7 @@ export class App {
     );
 
     const place = gui.addFolder('Place');
+    this.guiFolders.place = place;
     setTooltip(
       place.add(this.params.place, 'latitude', -66, 66, 0.01).listen(),
       'Latitude (deg) used to compute solar position.'
@@ -157,6 +163,7 @@ export class App {
     );
 
     const time = gui.addFolder('Time');
+    this.guiFolders.time = time;
     setTooltip(time.add(this.params.time, 'year', 2000, 2035, 1).listen(), 'Local year for solar ephemeris.');
     setTooltip(time.add(this.params.time, 'month', 1, 12, 1).listen(), 'Local month for solar ephemeris.');
     setTooltip(time.add(this.params.time, 'day', 1, 31, 1).listen(), 'Local day for solar ephemeris.');
@@ -181,6 +188,7 @@ export class App {
     );
 
     const realFolder = gui.addFolder('Real-time');
+    this.guiFolders.realtime = realFolder;
     const rtToggle = realFolder.add(this.params.realtime, 'enabled').name('Use real-time');
     this.bindControl('realtime.enabled', rtToggle);
     rtToggle.onChange((v: boolean) => {
@@ -197,6 +205,7 @@ export class App {
 
     // Cloud GUI
     const cloud = gui.addFolder('Cloud (volumetric)');
+    this.guiFolders.cloud = cloud;
     setTooltip(cloud.add(this.params.cloud, 'enabled').name('enabled'), 'Toggle volumetric clouds on/off.');
     const cloudCoverageCtrl = cloud.add(this.params.cloud, 'coverage', 0.0, 1.0, 0.01).listen();
     this.bindControl('cloud.coverage', cloudCoverageCtrl);
@@ -266,6 +275,14 @@ export class App {
 
   setParamNoticeHandler(fn: (msg: string) => void) {
     this.paramNoticeHandler = fn;
+  }
+
+  collapseUnchangedPanels() {
+    const toClose = ['sun', 'sky2', 'ground', 'place'];
+    toClose.forEach(key => {
+      const f = this.guiFolders[key];
+      if (f?.close) f.close();
+    });
   }
 
   private bindControl(path: string, ctrl: any) {
